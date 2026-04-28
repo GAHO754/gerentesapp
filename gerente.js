@@ -1,4 +1,4 @@
-// gerente.js PRO Applebee's
+// gerente.js PRO FINAL
 
 let qrScannerGerente = null;
 let canjeActualId = null;
@@ -17,13 +17,7 @@ function money(n) {
 function formatDate(ts) {
   if (!ts) return "---";
 
-  let date;
-
-  if (ts.toDate) {
-    date = ts.toDate();
-  } else {
-    date = new Date(ts);
-  }
+  let date = ts.toDate ? ts.toDate() : new Date(ts);
 
   return date.toLocaleString("es-MX", {
     dateStyle: "short",
@@ -31,20 +25,7 @@ function formatDate(ts) {
   });
 }
 
-function togglePasswordGerente() {
-  const input = document.getElementById("passwordGerente");
-  const icon = document.querySelector(".toggle-pass");
-
-  if (!input) return;
-
-  if (input.type === "password") {
-    input.type = "text";
-    if (icon) icon.textContent = "🙈";
-  } else {
-    input.type = "password";
-    if (icon) icon.textContent = "👁️";
-  }
-}
+// ================= LOGIN =================
 
 async function loginGerente() {
   const email = document.getElementById("emailGerente").value.trim();
@@ -58,28 +39,32 @@ async function loginGerente() {
   try {
     const cred = await auth.signInWithEmailAndPassword(email, password);
 
-    const userDoc = await db.collection("users").doc(cred.user.uid).get();
+    const doc = await db.collection("users").doc(cred.user.uid).get();
 
-    if (!userDoc.exists) {
+    if (!doc.exists) {
       await auth.signOut();
-      alert("Tu usuario no tiene perfil asignado.");
+      alert("Tu usuario no tiene perfil en Firestore.");
       return;
     }
 
-    const userData = userDoc.data();
+    const data = doc.data();
+    const role = String(data.role || "").toLowerCase().trim();
 
-    if (!["gerente", "admin", "manager"].includes(userData.role)) {
+    if (!["gerente", "admin", "manager"].includes(role)) {
       await auth.signOut();
-      alert("No tienes permisos para acceder al panel de gerentes.");
+      alert("No tienes permisos.");
       return;
     }
 
     window.location.href = "panel-gerente.html";
+
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
     alert("Error al iniciar sesión: " + error.message);
   }
 }
+
+// ================= LOGOUT =================
 
 function cerrarSesionGerente() {
   auth.signOut().then(() => {
@@ -87,25 +72,36 @@ function cerrarSesionGerente() {
   });
 }
 
+// ================= AUTH CONTROL =================
+
 auth.onAuthStateChanged(async (user) => {
   const page = location.pathname.split("/").pop();
 
-  const paginasGerentePublicas = ["login-gerente.html"];
-
-  if (!user && !paginasGerentePublicas.includes(page)) {
+  if (!user && page !== "login-gerente.html") {
     window.location.href = "login-gerente.html";
     return;
   }
 
   if (!user) return;
 
-  if (page === "login-gerente.html") return;
+  // 🔥 AUTO REDIRECT si ya está logeado
+  if (user && page === "login-gerente.html") {
+    const permitido = await validarRolGerente(user);
+
+    if (permitido) {
+      window.location.href = "panel-gerente.html";
+      return;
+    }
+
+    await auth.signOut();
+    return;
+  }
 
   const permitido = await validarRolGerente(user);
 
   if (!permitido) {
     await auth.signOut();
-    alert("No tienes permisos para entrar aquí.");
+    alert("No tienes acceso.");
     window.location.href = "login-gerente.html";
     return;
   }
@@ -115,54 +111,52 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
+// ================= VALIDAR ROL =================
+
 async function validarRolGerente(user) {
   try {
     const doc = await db.collection("users").doc(user.uid).get();
 
-    if (!doc.exists) return false;
+    if (!doc.exists) {
+      console.log("No existe usuario en Firestore:", user.uid);
+      return false;
+    }
 
-    const role = doc.data().role;
+    const data = doc.data();
+    const role = String(data.role || "").toLowerCase().trim();
+
+    if (data.activo === false) {
+      console.log("Usuario inactivo");
+      return false;
+    }
 
     return ["gerente", "admin", "manager"].includes(role);
+
   } catch (error) {
-    console.error(error);
+    console.error("Error validando rol:", error);
     return false;
   }
 }
 
+// ================= SCANNER =================
+
 async function iniciarScannerGerente() {
-  const reader = document.getElementById("qr-reader");
-
-  if (!reader) {
-    alert("No se encontró el lector QR.");
-    return;
-  }
-
-  if (qrScannerGerente) {
-    return;
-  }
+  if (qrScannerGerente) return;
 
   qrScannerGerente = new Html5Qrcode("qr-reader");
 
   try {
     await qrScannerGerente.start(
       { facingMode: "environment" },
-      {
-        fps: 10,
-        qrbox: {
-          width: 250,
-          height: 250
-        }
-      },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
       async (decodedText) => {
         await detenerScannerGerente();
         await buscarCanjePorQR(decodedText);
-      },
-      () => {}
+      }
     );
   } catch (error) {
     console.error(error);
-    alert("No se pudo abrir la cámara. Revisa permisos del navegador.");
+    alert("Error cámara.");
     qrScannerGerente = null;
   }
 }
@@ -170,189 +164,115 @@ async function iniciarScannerGerente() {
 async function detenerScannerGerente() {
   if (!qrScannerGerente) return;
 
-  try {
-    await qrScannerGerente.stop();
-    await qrScannerGerente.clear();
-  } catch (error) {
-    console.warn("Scanner ya estaba detenido:", error);
-  }
+  await qrScannerGerente.stop();
+  await qrScannerGerente.clear();
 
   qrScannerGerente = null;
 }
 
+// ================= BUSCAR CANJE =================
+
 async function buscarCanjePorQR(qrText) {
-  const redemptionId = String(qrText || "").trim();
-
-  if (!redemptionId) {
-    alert("QR inválido.");
-    return;
-  }
-
   try {
-    const ref = db.collection("redemptions").doc(redemptionId);
-    const doc = await ref.get();
+    const doc = await db.collection("redemptions").doc(qrText).get();
 
     if (!doc.exists) {
-      limpiarCanjeActual();
-      alert("Este QR no existe o no pertenece a un canje válido.");
+      alert("QR no válido");
       return;
     }
 
-    const data = doc.data();
+    canjeActualId = qrText;
+    canjeActualData = doc.data();
 
-    canjeActualId = redemptionId;
-    canjeActualData = data;
+    mostrarCanje(canjeActualData);
 
-    mostrarCanjeEnPantalla(data);
-
-    if (data.status !== "pendiente") {
-      alert("Este canje ya fue utilizado o no está disponible.");
-    }
   } catch (error) {
     console.error(error);
-    alert("Error al buscar el canje.");
   }
 }
 
-function mostrarCanjeEnPantalla(data) {
-  const card = document.getElementById("canjeCard");
+function mostrarCanje(data) {
+  document.getElementById("canjeCard").style.display = "block";
 
-  if (card) card.style.display = "block";
-
-  const cliente = document.getElementById("clienteCanje");
-  const beneficio = document.getElementById("beneficioCanje");
-  const monto = document.getElementById("montoCanje");
-  const estado = document.getElementById("estadoCanje");
-
-  if (cliente) cliente.textContent = data.clienteEmail || data.userId || "---";
-  if (beneficio) beneficio.textContent = data.beneficio || "---";
-  if (monto) monto.textContent = money(data.monto);
-  if (estado) estado.textContent = data.status || "---";
+  document.getElementById("clienteCanje").textContent = data.clienteEmail || "---";
+  document.getElementById("beneficioCanje").textContent = data.beneficio || "---";
+  document.getElementById("montoCanje").textContent = money(data.monto);
+  document.getElementById("estadoCanje").textContent = data.status;
 }
 
-function limpiarCanjeActual() {
-  canjeActualId = null;
-  canjeActualData = null;
-
-  const card = document.getElementById("canjeCard");
-  if (card) card.style.display = "none";
-
-  const sucursal = document.getElementById("sucursalCanje");
-  if (sucursal) sucursal.value = "";
-}
+// ================= VALIDAR CANJE =================
 
 async function validarCanjeGerente() {
   const user = auth.currentUser;
 
-  if (!user) {
-    alert("Sesión no válida.");
-    return;
-  }
-
-  if (!canjeActualId || !canjeActualData) {
-    alert("Primero escanea un QR de canje.");
+  if (!canjeActualId) {
+    alert("Escanea primero");
     return;
   }
 
   const sucursal = document.getElementById("sucursalCanje").value;
 
   if (!sucursal) {
-    alert("Selecciona la sucursal donde se realiza el canje.");
+    alert("Selecciona sucursal");
     return;
   }
 
   const ref = db.collection("redemptions").doc(canjeActualId);
 
   try {
-    await db.runTransaction(async (transaction) => {
-      const freshDoc = await transaction.get(ref);
+    await db.runTransaction(async (tx) => {
+      const doc = await tx.get(ref);
 
-      if (!freshDoc.exists) {
-        throw new Error("NO_EXISTE");
-      }
+      if (!doc.exists) throw new Error("NO_EXISTE");
 
-      const freshData = freshDoc.data();
-
-      if (freshData.status !== "pendiente") {
+      if (doc.data().status !== "pendiente") {
         throw new Error("YA_CANJEADO");
       }
 
-      transaction.update(ref, {
+      tx.update(ref, {
         status: "canjeado",
         sucursalCanje: sucursal,
-        sucursalCanjeNombre: SUCURSALES[sucursal] || sucursal,
         gerenteEmail: user.email,
-        gerenteUid: user.uid,
         redeemedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     });
 
-    alert("Canje validado correctamente.");
+    alert("Canje exitoso");
 
-    limpiarCanjeActual();
     cargarCanjesGerente();
-  } catch (error) {
-    console.error(error);
 
-    if (error.message === "YA_CANJEADO") {
-      alert("Este QR ya fue canjeado anteriormente.");
-    } else if (error.message === "NO_EXISTE") {
-      alert("El canje ya no existe.");
-    } else {
-      alert("Error al validar el canje.");
-    }
+  } catch (e) {
+    alert("Error: " + e.message);
   }
 }
 
+// ================= TABLA =================
+
 async function cargarCanjesGerente() {
   const tbody = document.getElementById("tablaCanjes");
+
   if (!tbody) return;
 
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="6">Cargando canjes...</td>
-    </tr>
-  `;
+  const snap = await db.collection("redemptions")
+    .where("status", "==", "canjeado")
+    .orderBy("redeemedAt", "desc")
+    .limit(50)
+    .get();
 
-  try {
-    const snap = await db.collection("redemptions")
-      .where("status", "==", "canjeado")
-      .orderBy("redeemedAt", "desc")
-      .limit(50)
-      .get();
+  tbody.innerHTML = "";
 
-    if (snap.empty) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="6">Todavía no hay canjes realizados.</td>
-        </tr>
-      `;
-      return;
-    }
+  snap.forEach(doc => {
+    const r = doc.data();
 
-    tbody.innerHTML = "";
-
-    snap.forEach(doc => {
-      const r = doc.data();
-
-      tbody.innerHTML += `
-        <tr>
-          <td>${formatDate(r.redeemedAt)}</td>
-          <td>${r.clienteEmail || "---"}</td>
-          <td>${r.beneficio || "---"}</td>
-          <td>${money(r.monto)}</td>
-          <td>${r.sucursalCanjeNombre || SUCURSALES[r.sucursalCanje] || "---"}</td>
-          <td>${r.gerenteEmail || "---"}</td>
-        </tr>
-      `;
-    });
-  } catch (error) {
-    console.error(error);
-
-    tbody.innerHTML = `
+    tbody.innerHTML += `
       <tr>
-        <td colspan="6">Error al cargar canjes. Revisa índices/permisos de Firebase.</td>
+        <td>${formatDate(r.redeemedAt)}</td>
+        <td>${r.clienteEmail}</td>
+        <td>${r.beneficio}</td>
+        <td>${money(r.monto)}</td>
+        <td>${SUCURSALES[r.sucursalCanje]}</td>
+        <td>${r.gerenteEmail}</td>
       </tr>
     `;
-  }
+  });
 }
