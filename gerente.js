@@ -86,7 +86,8 @@ auth.onAuthStateChanged(async (user) => {
 
   // 🔥 AUTO REDIRECT si ya está logeado
   if (user && page === "login-gerente.html") {
-  console.log("Usuario ya autenticado en login gerente:", user.email);
+  console.log("Usuario ya autenticado, enviando al panel:", user.email);
+  window.location.href = "panel-gerente.html";
   return;
 }
 
