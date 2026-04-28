@@ -39,7 +39,7 @@ async function loginGerente() {
   try {
     const cred = await auth.signInWithEmailAndPassword(email, password);
 
-    const doc = await db.collection("users").doc(cred.user.uid).get();
+    const doc = await db.collection("users").doc(cred.user.uid).get({ source: "server" });
 
     if (!doc.exists) {
       await auth.signOut();
@@ -86,19 +86,32 @@ auth.onAuthStateChanged(async (user) => {
 
   // 🔥 AUTO REDIRECT si ya está logeado
   if (user && page === "login-gerente.html") {
-  console.log("Usuario ya autenticado, enviando al panel:", user.email);
-  window.location.href = "panel-gerente.html";
+  const result = await validarRolGerente(user);
+
+  if (result.ok) {
+    console.log("Usuario gerente validado, enviando al panel:", user.email);
+    window.location.href = "panel-gerente.html";
+    return;
+  }
+
+  console.warn("Usuario sin acceso:", result.reason);
+  await auth.signOut();
   return;
 }
 
-  const permitido = await validarRolGerente(user);
+const result = await validarRolGerente(user);
 
-  if (!permitido) {
-    await auth.signOut();
-    alert("No tienes acceso.");
-    window.location.href = "login-gerente.html";
+if (!result.ok) {
+  if (result.reason === "FIRESTORE_ERROR") {
+    alert("No se pudo validar tu acceso por conexión con Firebase. Revisa internet y vuelve a intentar.");
     return;
   }
+
+  await auth.signOut();
+  alert("No tienes acceso.");
+  window.location.href = "login-gerente.html";
+  return;
+}
 
   if (document.getElementById("tablaCanjes")) {
     cargarCanjesGerente();
@@ -109,26 +122,48 @@ auth.onAuthStateChanged(async (user) => {
 
 async function validarRolGerente(user) {
   try {
-    const doc = await db.collection("users").doc(user.uid).get();
+    const doc = await db.collection("users").doc(user.uid).get({
+      source: "server"
+    });
 
     if (!doc.exists) {
       console.log("No existe usuario en Firestore:", user.uid);
-      return false;
+      return {
+        ok: false,
+        reason: "NO_PROFILE"
+      };
     }
 
     const data = doc.data();
     const role = String(data.role || "").toLowerCase().trim();
 
     if (data.activo === false) {
-      console.log("Usuario inactivo");
-      return false;
+      return {
+        ok: false,
+        reason: "INACTIVE"
+      };
     }
 
-    return ["gerente", "admin", "manager"].includes(role);
+    if (!["gerente", "admin", "manager"].includes(role)) {
+      return {
+        ok: false,
+        reason: "NO_ROLE"
+      };
+    }
+
+    return {
+      ok: true,
+      data
+    };
 
   } catch (error) {
-    console.error("Error validando rol:", error);
-    return false;
+    console.error("Error validando rol gerente:", error);
+
+    return {
+      ok: false,
+      reason: "FIRESTORE_ERROR",
+      error
+    };
   }
 }
 
