@@ -1,5 +1,3 @@
-// firebase.js
-
 const firebaseConfig = {
   apiKey: "AIzaSyDudE8w4AZx9o3sB3pdaVFQah1GeIGJI3M",
   authDomain: "applev1demo.firebaseapp.com",
@@ -13,15 +11,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
-
 const db = firebase.firestore();
 
-// 🔥 Corrige errores Firestore Listen/channel 400 en algunos navegadores/redes
 db.settings({
-  experimentalAutoDetectLongPolling: true
+  experimentalAutoDetectLongPolling: true,
+  merge: true
 });
 
-// Storage solo si tienes firebase-storage-compat.js cargado
 let storage = null;
 if (firebase.storage) {
   storage = firebase.storage();
