@@ -14,8 +14,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 db.settings({
-  experimentalAutoDetectLongPolling: true,
-  merge: true
+  experimentalAutoDetectLongPolling: true
 });
 
 let storage = null;
