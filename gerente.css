@@ -1,0 +1,265 @@
+:root {
+  --bg-main: #050c13;
+  --bg-card: rgba(12, 20, 32, 0.9);
+  --bg-soft: rgba(255,255,255,0.05);
+
+  --text-main: #ffffff;
+  --text-soft: #b7c2cf;
+  --text-muted: #8c98a6;
+
+  --primary: #e31837;
+  --primary-2: #ff4b67;
+
+  --green: #10b981;
+
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow: 0 20px 50px rgba(0,0,0,0.4);
+  --transition: 0.3s ease;
+}
+
+/* RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+  background: linear-gradient(180deg, #050c13, #0c1624);
+  color: var(--text-main);
+  min-height: 100vh;
+}
+
+/* ================= LOGIN GERENTE ================= */
+
+.manager-auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 20px;
+}
+
+.manager-auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--bg-card);
+  padding: 28px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+}
+
+.manager-brand {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.manager-logo {
+  width: 60px;
+  height: 60px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+}
+
+.manager-logo img {
+  width: 28px;
+}
+
+.manager-brand h1 {
+  margin-top: 10px;
+}
+
+.manager-brand p {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.auth-note {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ================= INPUTS ================= */
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  border: none;
+  background: var(--bg-soft);
+  color: white;
+  margin-top: 4px;
+}
+
+/* PASSWORD */
+
+.password-box {
+  position: relative;
+}
+
+.password-box input {
+  padding-right: 40px;
+}
+
+.toggle-pass {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+/* ================= BOTONES ================= */
+
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: none;
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  color: white;
+  font-weight: bold;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: white;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.btn-logout {
+  background: var(--bg-soft);
+  border: none;
+  padding: 8px 12px;
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+}
+
+/* ================= PANEL ================= */
+
+.manager-page {
+  padding: 20px;
+}
+
+.manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.manager-header p {
+  color: var(--text-muted);
+}
+
+/* ================= CARD ================= */
+
+.manager-card {
+  background: var(--bg-card);
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 18px;
+  box-shadow: var(--shadow);
+}
+
+.manager-card h2 {
+  margin-bottom: 6px;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ================= QR ================= */
+
+.qr-reader {
+  width: 100%;
+  margin: 12px 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* ================= INFO CANJE ================= */
+
+.redeem-info p {
+  margin-bottom: 6px;
+}
+
+/* ================= TABLA ================= */
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead {
+  background: rgba(255,255,255,0.08);
+}
+
+th, td {
+  padding: 10px;
+  text-align: left;
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+tbody tr:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 480px) {
+  .manager-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .btn-secondary,
+  .btn-primary {
+    font-size: 14px;
+  }
+}

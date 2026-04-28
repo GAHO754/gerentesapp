@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Panel Gerente | Applebee’s Lealtad</title>
+
+  <link rel="icon" type="image/png" sizes="32x32" href="manzanas.png" />
+  <link rel="stylesheet" href="gerente.css" />
+</head>
+
+<body>
+  <main class="manager-page">
+
+    <header class="manager-header">
+      <div>
+        <h1>Panel de Gerente</h1>
+        <p>Valida canjes de clientes por código QR</p>
+      </div>
+
+      <button class="btn-logout" onclick="cerrarSesionGerente()">
+        Salir
+      </button>
+    </header>
+
+    <section class="manager-card">
+      <h2>Escanear QR de canje</h2>
+      <p class="muted">Abre la cámara y escanea el QR generado por el cliente.</p>
+
+      <div id="qr-reader" class="qr-reader"></div>
+
+      <button class="btn-primary" onclick="iniciarScannerGerente()">
+        Abrir cámara
+      </button>
+
+      <button class="btn-secondary" onclick="detenerScannerGerente()">
+        Detener cámara
+      </button>
+    </section>
+
+    <section class="manager-card" id="canjeCard" style="display:none;">
+      <h2>Datos del canje</h2>
+
+      <div class="redeem-info">
+        <p><strong>Cliente:</strong> <span id="clienteCanje">---</span></p>
+        <p><strong>Beneficio:</strong> <span id="beneficioCanje">---</span></p>
+        <p><strong>Monto:</strong> <span id="montoCanje">$0.00</span></p>
+        <p><strong>Estado:</strong> <span id="estadoCanje">---</span></p>
+      </div>
+
+      <div class="form-group">
+        <label>Sucursal donde se canjea</label>
+        <select id="sucursalCanje">
+          <option value="">Selecciona sucursal</option>
+          <option value="applebees_torres">Applebee’s Torres</option>
+          <option value="applebees_triunfo">Applebee’s Triunfo</option>
+          <option value="applebees_tecnologico">Applebee’s Tecnológico</option>
+        </select>
+      </div>
+
+      <button class="btn-primary" onclick="validarCanjeGerente()">
+        Validar canje
+      </button>
+    </section>
+
+    <section class="manager-card">
+      <div class="table-header">
+        <div>
+          <h2>Canjes realizados</h2>
+          <p class="muted">Registro de validaciones hechas por gerentes.</p>
+        </div>
+
+        <button class="btn-secondary" onclick="cargarCanjesGerente()">
+          Actualizar
+        </button>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>Beneficio</th>
+              <th>Monto</th>
+              <th>Sucursal</th>
+              <th>Gerente</th>
+            </tr>
+          </thead>
+          <tbody id="tablaCanjes">
+            <tr>
+              <td colspan="6">Cargando canjes...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <script src="firebase.js"></script>
+  <script src="gerente.js"></script>
+</body>
+</html>
