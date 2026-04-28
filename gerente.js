@@ -86,16 +86,9 @@ auth.onAuthStateChanged(async (user) => {
 
   // 🔥 AUTO REDIRECT si ya está logeado
   if (user && page === "login-gerente.html") {
-    const permitido = await validarRolGerente(user);
-
-    if (permitido) {
-      window.location.href = "panel-gerente.html";
-      return;
-    }
-
-    await auth.signOut();
-    return;
-  }
+  console.log("Usuario ya autenticado en login gerente:", user.email);
+  return;
+}
 
   const permitido = await validarRolGerente(user);
 
