@@ -276,3 +276,18 @@ async function cargarCanjesGerente() {
     `;
   });
 }
+
+function togglePasswordGerente() {
+  const input = document.getElementById("passwordGerente");
+  const icon = document.querySelector(".toggle-pass");
+
+  if (!input) return;
+
+  if (input.type === "password") {
+    input.type = "text";
+    if (icon) icon.textContent = "🙈";
+  } else {
+    input.type = "password";
+    if (icon) icon.textContent = "👁️";
+  }
+}
