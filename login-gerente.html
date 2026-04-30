@@ -7,10 +7,39 @@
   <title>Gerentes | Applebee’s Lealtad</title>
 
   <link rel="icon" type="image/png" sizes="32x32" href="manzanas.png" />
-  <link rel="stylesheet" href="gerente.css" />
+  <link rel="apple-touch-icon" href="manzanas256.png" />
+
+  <link rel="manifest" href="./manifest-gerente.json" />
+
+  <meta name="theme-color" content="#e31837" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Applebee’s Gerentes" />
+
+  <link rel="stylesheet" href="gerente.css?v=gerente_pwa_1" />
 </head>
 
 <body>
+
+  <!-- INSTALAR APP GERENTES -->
+  <div id="installBoxGerente" class="pwa-install">
+    <div class="pwa-row">
+      <div>
+        <div class="pwa-title">Instala la app de gerentes</div>
+        <div class="pwa-sub">Acceso rápido para validar canjes</div>
+      </div>
+
+      <button id="btnInstallGerente" class="pwa-btn" style="display:none" type="button">
+        Instalar
+      </button>
+    </div>
+
+    <div id="iosHintGerente" class="pwa-ios" style="display:none">
+      En iPhone: abre en <b>Safari</b> → <b>Compartir</b> → <b>Agregar a pantalla de inicio</b>.
+    </div>
+  </div>
+
   <main class="manager-auth-page">
     <section class="manager-auth-card">
       <div class="manager-brand">
@@ -26,14 +55,24 @@
 
       <div class="form-group">
         <label>Correo de gerente</label>
-        <input type="email" id="emailGerente" placeholder="gerente@applebees.com" />
+        <input
+          type="email"
+          id="emailGerente"
+          placeholder="gerente@applebees.com"
+          autocomplete="email"
+        />
       </div>
 
       <div class="form-group">
         <label>Contraseña</label>
 
         <div class="password-box">
-          <input type="password" id="passwordGerente" placeholder="Tu contraseña" />
+          <input
+            type="password"
+            id="passwordGerente"
+            placeholder="Tu contraseña"
+            autocomplete="current-password"
+          />
           <span class="toggle-pass" onclick="togglePasswordGerente()">👁️</span>
         </div>
       </div>
@@ -48,13 +87,24 @@
     </section>
   </main>
 
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 
-    <script src="firebase.js?v=gerente_rtdb_1"></script>
-    <script src="gerente.js?v=gerente_rtdb_1"></script>
+  <script src="firebase.js?v=gerente_pwa_1"></script>
+  <script src="gerente.js?v=gerente_pwa_1"></script>
+  <script src="install-gerente.js?v=gerente_pwa_1"></script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker-gerente.js")
+          .then(() => console.log("Service Worker Gerente registrado"))
+          .catch(error => console.error("Error Service Worker Gerente:", error));
+      });
+    }
+  </script>
 </body>
 </html>
