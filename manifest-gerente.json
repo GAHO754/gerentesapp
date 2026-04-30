@@ -1,0 +1,26 @@
+{
+  "name": "Applebee’s Gerentes",
+  "short_name": "Gerentes",
+  "description": "Panel de gerentes Applebee’s Lealtad",
+  "start_url": "./login-gerente.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#050c13",
+  "theme_color": "#e31837",
+  "icons": [
+    {
+      "src": "./letrag12.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./letrag1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
