@@ -139,6 +139,9 @@ async function validarRolGerente(user) {
     }
 
     const data = snap.val() || {};
+    console.log("QR leído:", redemptionId);
+    console.log("Canje encontrado:", data);
+    console.log("Status Firebase:", data.status);
     const role = String(data.role || "").toLowerCase().trim();
 
     if (data.activo === false) {
@@ -313,7 +316,6 @@ function limpiarCanjeActual() {
 }
 
 // ================= VALIDAR CANJE =================
-
 async function validarCanjeGerente() {
   const user = auth.currentUser;
 
@@ -328,17 +330,8 @@ async function validarCanjeGerente() {
     alert("Primero escanea un QR.");
     return;
   }
-  
-  const statusActual = String(canjeActualData.status || "").toLowerCase().trim();
 
-if (statusActual !== "pendiente") {
-    alert("Este QR ya fue canjeado o no está disponible.");
-    limpiarCanjeActual();
-    cargarCanjesGerente();
-    return;
-  }
-
-
+  console.log("Canje actual antes de validar:", canjeActualId, canjeActualData);
 
   const sucursal = document.getElementById("sucursalCanje").value;
 
@@ -371,6 +364,8 @@ if (statusActual !== "pendiente") {
     const now = Date.now();
 
     const tx = await canjeRef.transaction(current => {
+      console.log("Canje actual en Firebase:", current);
+
       if (current === null) {
         return;
       }
@@ -378,6 +373,7 @@ if (statusActual !== "pendiente") {
       const statusCurrent = String(current.status || "").toLowerCase().trim();
 
       if (statusCurrent !== "pendiente") {
+        console.log("Status actual no pendiente:", current.status);
         return;
       }
 
