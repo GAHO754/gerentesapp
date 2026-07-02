@@ -1,8 +1,9 @@
-// gerente.js PRO FINAL - Realtime Database
+// gerente.js PRO FINAL - Applebee's Lealtad / Realtime Database
 
 let qrScannerGerente = null;
 let canjeActualId = null;
 let canjeActualData = null;
+let validandoCanje = false;
 
 const SUCURSALES = {
   applebees_torres: "Applebee’s Torres",
@@ -41,7 +42,6 @@ async function loginGerente() {
 
   try {
     const cred = await auth.signInWithEmailAndPassword(email, password);
-
     const result = await validarRolGerente(cred.user);
 
     if (!result.ok) {
@@ -63,7 +63,7 @@ async function loginGerente() {
     window.location.href = "panel-gerente.html";
 
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login gerente error:", error);
     alert("Error al iniciar sesión: " + error.message);
   }
 }
@@ -71,6 +71,8 @@ async function loginGerente() {
 // ================= LOGOUT =================
 
 function cerrarSesionGerente() {
+  detenerScannerGerente();
+
   auth.signOut()
     .then(() => {
       window.location.href = "login-gerente.html";
@@ -97,12 +99,10 @@ auth.onAuthStateChanged(async (user) => {
     const result = await validarRolGerente(user);
 
     if (result.ok) {
-      console.log("Usuario gerente validado, enviando al panel:", user.email);
       window.location.href = "panel-gerente.html";
       return;
     }
 
-    console.warn("Usuario sin acceso:", result.reason);
     await auth.signOut();
     return;
   }
@@ -132,7 +132,6 @@ async function validarRolGerente(user) {
     const snap = await rtdb.ref(`users/${user.uid}`).once("value");
 
     if (!snap.exists()) {
-      console.log("No existe usuario en Realtime Database:", user.uid);
       return {
         ok: false,
         reason: "NO_PROFILE"
@@ -182,7 +181,10 @@ async function iniciarScannerGerente() {
     return;
   }
 
-  if (qrScannerGerente) return;
+  if (qrScannerGerente) {
+    alert("La cámara ya está activa.");
+    return;
+  }
 
   qrScannerGerente = new Html5Qrcode("qr-reader");
 
@@ -202,6 +204,7 @@ async function iniciarScannerGerente() {
       },
       () => {}
     );
+
   } catch (error) {
     console.error("Error cámara:", error);
     alert("No se pudo abrir la cámara. Revisa permisos del navegador.");
@@ -222,12 +225,13 @@ async function detenerScannerGerente() {
   qrScannerGerente = null;
 }
 
-// ================= BUSCAR CANJE RTDB =================
+// ================= BUSCAR CANJE =================
 
 async function buscarCanjePorQR(qrText) {
   const redemptionId = String(qrText || "").trim();
 
   if (!redemptionId) {
+    limpiarCanjeActual();
     alert("QR inválido.");
     return;
   }
@@ -241,7 +245,7 @@ async function buscarCanjePorQR(qrText) {
       return;
     }
 
-    const data = snap.val();
+    const data = snap.val() || {};
 
     canjeActualId = redemptionId;
     canjeActualData = data;
@@ -250,10 +254,12 @@ async function buscarCanjePorQR(qrText) {
 
     if (data.status !== "pendiente") {
       alert("Este canje ya fue utilizado o no está disponible.");
+      return;
     }
 
   } catch (error) {
     console.error("Error buscando canje:", error);
+    limpiarCanjeActual();
     alert("Error al buscar el canje.");
   }
 }
@@ -267,24 +273,46 @@ function mostrarCanje(data) {
   const monto = document.getElementById("montoCanje");
   const estado = document.getElementById("estadoCanje");
 
-  if (cliente) cliente.textContent = data.clienteEmail || data.clienteNombre || data.userId || "---";
+  if (cliente) {
+    cliente.textContent =
+      data.clienteNombre ||
+      data.clienteEmail ||
+      data.userId ||
+      "---";
+  }
+
   if (beneficio) beneficio.textContent = data.beneficio || "---";
   if (monto) monto.textContent = money(data.monto || 0);
   if (estado) estado.textContent = data.status || "---";
+
+  const btnValidar = document.querySelector("#canjeCard .btn-primary");
+  if (btnValidar) {
+    btnValidar.disabled = data.status !== "pendiente";
+    btnValidar.innerText = data.status === "pendiente"
+      ? "Validar canje"
+      : "Canje no disponible";
+  }
 }
 
 function limpiarCanjeActual() {
   canjeActualId = null;
   canjeActualData = null;
+  validandoCanje = false;
 
   const card = document.getElementById("canjeCard");
   if (card) card.style.display = "none";
 
   const sucursal = document.getElementById("sucursalCanje");
   if (sucursal) sucursal.value = "";
+
+  const btnValidar = document.querySelector("#canjeCard .btn-primary");
+  if (btnValidar) {
+    btnValidar.disabled = false;
+    btnValidar.innerText = "Validar canje";
+  }
 }
 
-// ================= VALIDAR CANJE RTDB =================
+// ================= VALIDAR CANJE =================
 
 async function validarCanjeGerente() {
   const user = auth.currentUser;
@@ -294,8 +322,17 @@ async function validarCanjeGerente() {
     return;
   }
 
+  if (validandoCanje) return;
+
   if (!canjeActualId || !canjeActualData) {
     alert("Primero escanea un QR.");
+    return;
+  }
+
+  if (canjeActualData.status !== "pendiente") {
+    alert("Este QR ya fue canjeado o no está disponible.");
+    limpiarCanjeActual();
+    cargarCanjesGerente();
     return;
   }
 
@@ -306,9 +343,29 @@ async function validarCanjeGerente() {
     return;
   }
 
-  const canjeRef = rtdb.ref(`redemptions/${canjeActualId}`);
+  const confirmar = confirm(
+    "¿Confirmas validar este canje?\n\n" +
+    `Cliente: ${canjeActualData.clienteNombre || canjeActualData.clienteEmail || "---"}\n` +
+    `Beneficio: ${canjeActualData.beneficio || "---"}\n` +
+    `Monto: ${money(canjeActualData.monto || 0)}\n` +
+    `Sucursal: ${SUCURSALES[sucursal] || sucursal}`
+  );
+
+  if (!confirmar) return;
+
+  const btnValidar = document.querySelector("#canjeCard .btn-primary");
 
   try {
+    validandoCanje = true;
+
+    if (btnValidar) {
+      btnValidar.disabled = true;
+      btnValidar.innerText = "Validando...";
+    }
+
+    const canjeRef = rtdb.ref(`redemptions/${canjeActualId}`);
+    const now = Date.now();
+
     const tx = await canjeRef.transaction(current => {
       if (current === null) {
         return;
@@ -323,9 +380,9 @@ async function validarCanjeGerente() {
         status: "canjeado",
         sucursalCanje: sucursal,
         sucursalCanjeNombre: SUCURSALES[sucursal] || sucursal,
-        gerenteEmail: user.email,
+        gerenteEmail: user.email || "",
         gerenteUid: user.uid,
-        redeemedAt: Date.now()
+        redeemedAt: now
       };
     });
 
@@ -339,14 +396,16 @@ async function validarCanjeGerente() {
     await rtdb.ref("auditLogs").push().set({
       type: "CANJE_VALIDADO",
       redemptionId: canjeActualId,
-      gerenteEmail: user.email,
+      gerenteEmail: user.email || "",
       gerenteUid: user.uid,
       sucursalCanje: sucursal,
       sucursalCanjeNombre: SUCURSALES[sucursal] || sucursal,
       beneficio: canjeActualData.beneficio || "",
-      monto: canjeActualData.monto || 0,
+      monto: Number(canjeActualData.monto || 0),
       clienteEmail: canjeActualData.clienteEmail || "",
-      createdAt: Date.now()
+      clienteNombre: canjeActualData.clienteNombre || "",
+      userId: canjeActualData.userId || "",
+      createdAt: now
     });
 
     alert("Canje validado correctamente.");
@@ -357,12 +416,20 @@ async function validarCanjeGerente() {
   } catch (error) {
     console.error("Error validando canje:", error);
     alert("No se pudo validar el canje: " + error.message);
+
+    if (btnValidar) {
+      btnValidar.disabled = false;
+      btnValidar.innerText = "Validar canje";
+    }
+
+  } finally {
+    validandoCanje = false;
   }
 }
 
-// ================= TABLA CANJES RTDB =================
+// ================= TABLA CANJES =================
 
-async function cargarCanjesGerente() {
+function cargarCanjesGerente() {
   const tbody = document.getElementById("tablaCanjes");
 
   if (!tbody) return;
@@ -373,52 +440,51 @@ async function cargarCanjesGerente() {
     </tr>
   `;
 
-  try {
-    rtdb.ref("redemptions")
-      .orderByChild("status")
-      .equalTo("canjeado")
-      .limitToLast(50)
-      .on("value", snapshot => {
-        const data = snapshot.val();
+  rtdb.ref("redemptions")
+    .orderByChild("status")
+    .equalTo("canjeado")
+    .limitToLast(50)
+    .once("value")
+    .then(snapshot => {
+      const data = snapshot.val();
 
-        if (!data) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="6">Todavía no hay canjes realizados.</td>
-            </tr>
-          `;
-          return;
-        }
+      if (!data) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6">Todavía no hay canjes realizados.</td>
+          </tr>
+        `;
+        return;
+      }
 
-        const canjes = Object.values(data).sort((a, b) => {
-          return (b.redeemedAt || 0) - (a.redeemedAt || 0);
-        });
-
-        tbody.innerHTML = "";
-
-        canjes.forEach(r => {
-          tbody.innerHTML += `
-            <tr>
-              <td>${formatDate(r.redeemedAt)}</td>
-              <td>${r.clienteEmail || "---"}</td>
-              <td>${r.beneficio || "---"}</td>
-              <td>${money(r.monto || 0)}</td>
-              <td>${r.sucursalCanjeNombre || SUCURSALES[r.sucursalCanje] || "---"}</td>
-              <td>${r.gerenteEmail || "---"}</td>
-            </tr>
-          `;
-        });
+      const canjes = Object.values(data).sort((a, b) => {
+        return (b.redeemedAt || 0) - (a.redeemedAt || 0);
       });
 
-  } catch (error) {
-    console.error("Error cargando canjes:", error);
+      tbody.innerHTML = "";
 
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6">Error al cargar canjes.</td>
-      </tr>
-    `;
-  }
+      canjes.forEach(r => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${formatDate(r.redeemedAt)}</td>
+            <td>${r.clienteNombre || r.clienteEmail || "---"}</td>
+            <td>${r.beneficio || "---"}</td>
+            <td>${money(r.monto || 0)}</td>
+            <td>${r.sucursalCanjeNombre || SUCURSALES[r.sucursalCanje] || "---"}</td>
+            <td>${r.gerenteEmail || "---"}</td>
+          </tr>
+        `;
+      });
+    })
+    .catch(error => {
+      console.error("Error cargando canjes:", error);
+
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6">Error al cargar canjes.</td>
+        </tr>
+      `;
+    });
 }
 
 // ================= PASSWORD =================
