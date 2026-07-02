@@ -11,6 +11,8 @@ const SUCURSALES = {
   applebees_tecnologico: "Applebee’s Tecnológico"
 };
 
+// ================= UTILIDADES =================
+
 function money(n) {
   return "$" + Number(n || 0).toFixed(2);
 }
@@ -24,6 +26,10 @@ function formatDate(ts) {
     dateStyle: "short",
     timeStyle: "short"
   });
+}
+
+function normalizarStatus(status) {
+  return String(status || "").toLowerCase().trim();
 }
 
 // ================= LOGIN =================
@@ -139,9 +145,6 @@ async function validarRolGerente(user) {
     }
 
     const data = snap.val() || {};
-    console.log("QR leído:", redemptionId);
-    console.log("Canje encontrado:", data);
-    console.log("Status Firebase:", data.status);
     const role = String(data.role || "").toLowerCase().trim();
 
     if (data.activo === false) {
@@ -186,6 +189,11 @@ async function iniciarScannerGerente() {
 
   if (qrScannerGerente) {
     alert("La cámara ya está activa.");
+    return;
+  }
+
+  if (typeof Html5Qrcode === "undefined") {
+    alert("No se pudo cargar el lector QR. Revisa tu conexión a internet.");
     return;
   }
 
@@ -249,13 +257,21 @@ async function buscarCanjePorQR(qrText) {
     }
 
     const data = snap.val() || {};
+    const status = normalizarStatus(data.status);
+
+    console.log("QR leído:", redemptionId);
+    console.log("Canje encontrado:", data);
+    console.log("Status Firebase:", data.status);
 
     canjeActualId = redemptionId;
-    canjeActualData = data;
+    canjeActualData = {
+      ...data,
+      status: status
+    };
 
-    mostrarCanje(data);
+    mostrarCanje(canjeActualData);
 
-    if (data.status !== "pendiente") {
+    if (status !== "pendiente") {
       alert("Este canje ya fue utilizado o no está disponible.");
       return;
     }
@@ -276,6 +292,8 @@ function mostrarCanje(data) {
   const monto = document.getElementById("montoCanje");
   const estado = document.getElementById("estadoCanje");
 
+  const status = normalizarStatus(data.status);
+
   if (cliente) {
     cliente.textContent =
       data.clienteNombre ||
@@ -286,12 +304,13 @@ function mostrarCanje(data) {
 
   if (beneficio) beneficio.textContent = data.beneficio || "---";
   if (monto) monto.textContent = money(data.monto || 0);
-  if (estado) estado.textContent = data.status || "---";
+  if (estado) estado.textContent = status || "---";
 
   const btnValidar = document.querySelector("#canjeCard .btn-primary");
+
   if (btnValidar) {
-    btnValidar.disabled = data.status !== "pendiente";
-    btnValidar.innerText = data.status === "pendiente"
+    btnValidar.disabled = status !== "pendiente";
+    btnValidar.innerText = status === "pendiente"
       ? "Validar canje"
       : "Canje no disponible";
   }
@@ -309,6 +328,7 @@ function limpiarCanjeActual() {
   if (sucursal) sucursal.value = "";
 
   const btnValidar = document.querySelector("#canjeCard .btn-primary");
+
   if (btnValidar) {
     btnValidar.disabled = false;
     btnValidar.innerText = "Validar canje";
@@ -316,6 +336,7 @@ function limpiarCanjeActual() {
 }
 
 // ================= VALIDAR CANJE =================
+
 async function validarCanjeGerente() {
   const user = auth.currentUser;
 
@@ -331,9 +352,17 @@ async function validarCanjeGerente() {
     return;
   }
 
-  console.log("Canje actual antes de validar:", canjeActualId, canjeActualData);
+  const statusActual = normalizarStatus(canjeActualData.status);
 
-  const sucursal = document.getElementById("sucursalCanje").value;
+  if (statusActual !== "pendiente") {
+    alert("Este QR ya fue canjeado o no está disponible.");
+    limpiarCanjeActual();
+    cargarCanjesGerente();
+    return;
+  }
+
+  const sucursalInput = document.getElementById("sucursalCanje");
+  const sucursal = sucursalInput ? sucursalInput.value : "";
 
   if (!sucursal) {
     alert("Selecciona la sucursal donde se realiza el canje.");
@@ -364,13 +393,11 @@ async function validarCanjeGerente() {
     const now = Date.now();
 
     const tx = await canjeRef.transaction(current => {
-      console.log("Canje actual en Firebase:", current);
-
       if (current === null) {
         return;
       }
 
-      const statusCurrent = String(current.status || "").toLowerCase().trim();
+      const statusCurrent = normalizarStatus(current.status);
 
       if (statusCurrent !== "pendiente") {
         console.log("Status actual no pendiente:", current.status);
