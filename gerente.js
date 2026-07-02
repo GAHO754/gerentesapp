@@ -328,13 +328,17 @@ async function validarCanjeGerente() {
     alert("Primero escanea un QR.");
     return;
   }
+  
+  const statusActual = String(canjeActualData.status || "").toLowerCase().trim();
 
-  if (canjeActualData.status !== "pendiente") {
+if (statusActual !== "pendiente") {
     alert("Este QR ya fue canjeado o no está disponible.");
     limpiarCanjeActual();
     cargarCanjesGerente();
     return;
   }
+
+
 
   const sucursal = document.getElementById("sucursalCanje").value;
 
@@ -371,7 +375,9 @@ async function validarCanjeGerente() {
         return;
       }
 
-      if (current.status !== "pendiente") {
+      const statusCurrent = String(current.status || "").toLowerCase().trim();
+
+      if (statusCurrent !== "pendiente") {
         return;
       }
 
