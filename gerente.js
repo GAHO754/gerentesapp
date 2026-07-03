@@ -386,41 +386,34 @@ async function validarCanjeGerente() {
     }
 
     const canjeRef = rtdb.ref(`redemptions/${canjeActualId}`);
-    const now = Date.now();
+    const snap = await canjeRef.once("value");
+    const actual = snap.val();
 
-    const tx = await canjeRef.transaction(current => {
-      if (!current) return;
+    if (!actual) {
+      alert("Este QR no existe.");
+      limpiarCanjeActual();
+      return;
+    }
 
-      const statusActual = String(current.status || "").toLowerCase().trim();
+    const statusActual = String(actual.status || "").toLowerCase().trim();
 
-      if (statusActual !== "pendiente") {
-        return;
-      }
-
-      return {
-        ...current,
-        status: "canjeado",
-        sucursalCanje: sucursal,
-        sucursalCanjeNombre: SUCURSALES[sucursal] || sucursal,
-        gerenteEmail: user.email || "",
-        gerenteUid: user.uid,
-        redeemedAt: now
-      };
-    });
-
-    if (!tx.committed) {
-      const snapActual = await canjeRef.once("value");
-      const actual = snapActual.val();
-
-      alert(
-        "No se pudo validar este QR.\n\n" +
-        "Estado actual en Firebase: " + (actual?.status || "no existe")
-      );
-
+    if (statusActual !== "pendiente") {
+      alert("Este QR ya fue canjeado o no está disponible.");
       limpiarCanjeActual();
       cargarCanjesGerente();
       return;
     }
+
+    const now = Date.now();
+
+    await canjeRef.update({
+      status: "canjeado",
+      sucursalCanje: sucursal,
+      sucursalCanjeNombre: SUCURSALES[sucursal] || sucursal,
+      gerenteEmail: user.email || "",
+      gerenteUid: user.uid,
+      redeemedAt: now
+    });
 
     try {
       await rtdb.ref("auditLogs").push().set({
@@ -430,15 +423,15 @@ async function validarCanjeGerente() {
         gerenteUid: user.uid,
         sucursalCanje: sucursal,
         sucursalCanjeNombre: SUCURSALES[sucursal] || sucursal,
-        beneficio: canjeActualData?.beneficio || "",
-        monto: Number(canjeActualData?.monto || 0),
-        clienteEmail: canjeActualData?.clienteEmail || "",
-        clienteNombre: canjeActualData?.clienteNombre || "",
-        userId: canjeActualData?.userId || "",
+        beneficio: actual.beneficio || "",
+        monto: Number(actual.monto || 0),
+        clienteEmail: actual.clienteEmail || "",
+        clienteNombre: actual.clienteNombre || "",
+        userId: actual.userId || "",
         createdAt: now
       });
     } catch (auditError) {
-      console.warn("Canje validado, pero no se pudo guardar auditLog:", auditError);
+      console.warn("Canje validado, pero no se pudo guardar auditoría:", auditError);
     }
 
     alert("✅ Canje validado correctamente.");
@@ -459,6 +452,9 @@ async function validarCanjeGerente() {
     validandoCanje = false;
   }
 }
+
+
+
 // ================= TABLA CANJES =================
 
 function cargarCanjesGerente() {
