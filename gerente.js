@@ -239,49 +239,62 @@ async function detenerScannerGerente() {
 // ================= BUSCAR CANJE =================
 
 async function buscarCanjePorQR(qrText) {
-  const redemptionId = String(qrText || "").trim();
+  const qrId = String(qrText || "").trim();
 
-  if (!redemptionId) {
+  if (!qrId) {
     limpiarCanjeActual();
     alert("QR inválido.");
     return;
   }
 
   try {
-    const snap = await rtdb.ref(`redemptions/${redemptionId}`).once("value");
+    let snap = await rtdb.ref(`redemptions/${qrId}`).once("value");
+    let redemptionKey = qrId;
+    let data = snap.val();
 
-    if (!snap.exists()) {
+    if (!data) {
+      const querySnap = await rtdb.ref("redemptions")
+        .orderByChild("redemptionId")
+        .equalTo(qrId)
+        .once("value");
+
+      const encontrados = querySnap.val();
+
+      if (encontrados) {
+        redemptionKey = Object.keys(encontrados)[0];
+        data = encontrados[redemptionKey];
+      }
+    }
+
+    if (!data) {
       limpiarCanjeActual();
       alert("QR no válido o no existe.");
       return;
     }
 
-    const data = snap.val() || {};
-    const status = normalizarStatus(data.status);
+    const status = String(data.status || "").toLowerCase().trim();
 
-    console.log("QR leído:", redemptionId);
-    console.log("Canje encontrado:", data);
-    console.log("Status Firebase:", data.status);
-
-    canjeActualId = redemptionId;
+    canjeActualId = redemptionKey;
     canjeActualData = {
       ...data,
-      status: status
+      redemptionId: data.redemptionId || redemptionKey,
+      status
     };
 
     mostrarCanje(canjeActualData);
 
     if (status !== "pendiente") {
-      alert("Este canje ya fue utilizado o no está disponible.");
+      alert(`Este canje no está disponible. Estado actual: ${data.status || "---"}`);
       return;
     }
 
   } catch (error) {
     console.error("Error buscando canje:", error);
     limpiarCanjeActual();
-    alert("Error al buscar el canje.");
+    alert("Error al buscar el canje: " + error.message);
   }
 }
+
 
 function mostrarCanje(data) {
   const card = document.getElementById("canjeCard");
@@ -347,36 +360,19 @@ async function validarCanjeGerente() {
 
   if (validandoCanje) return;
 
-  if (!canjeActualId || !canjeActualData) {
+  if (!canjeActualId) {
     alert("Primero escanea un QR.");
     return;
   }
 
-  const statusActual = normalizarStatus(canjeActualData.status);
-
-  if (statusActual !== "pendiente") {
-    alert("Este QR ya fue canjeado o no está disponible.");
-    limpiarCanjeActual();
-    cargarCanjesGerente();
-    return;
-  }
-
-  const sucursalInput = document.getElementById("sucursalCanje");
-  const sucursal = sucursalInput ? sucursalInput.value : "";
+  const sucursal = document.getElementById("sucursalCanje")?.value || "";
 
   if (!sucursal) {
     alert("Selecciona la sucursal donde se realiza el canje.");
     return;
   }
 
-  const confirmar = confirm(
-    "¿Confirmas validar este canje?\n\n" +
-    `Cliente: ${canjeActualData.clienteNombre || canjeActualData.clienteEmail || "---"}\n` +
-    `Beneficio: ${canjeActualData.beneficio || "---"}\n` +
-    `Monto: ${money(canjeActualData.monto || 0)}\n` +
-    `Sucursal: ${SUCURSALES[sucursal] || sucursal}`
-  );
-
+  const confirmar = confirm("¿Confirmas validar este canje?");
   if (!confirmar) return;
 
   const btnValidar = document.querySelector("#canjeCard .btn-primary");
@@ -393,14 +389,11 @@ async function validarCanjeGerente() {
     const now = Date.now();
 
     const tx = await canjeRef.transaction(current => {
-      if (current === null) {
-        return;
-      }
+      if (!current) return;
 
-      const statusCurrent = normalizarStatus(current.status);
+      const statusActual = String(current.status || "").toLowerCase().trim();
 
-      if (statusCurrent !== "pendiente") {
-        console.log("Status actual no pendiente:", current.status);
+      if (statusActual !== "pendiente") {
         return;
       }
 
@@ -416,28 +409,39 @@ async function validarCanjeGerente() {
     });
 
     if (!tx.committed) {
-      alert("Este QR ya fue canjeado o no está disponible.");
+      const snapActual = await canjeRef.once("value");
+      const actual = snapActual.val();
+
+      alert(
+        "No se pudo validar este QR.\n\n" +
+        "Estado actual en Firebase: " + (actual?.status || "no existe")
+      );
+
       limpiarCanjeActual();
       cargarCanjesGerente();
       return;
     }
 
-    await rtdb.ref("auditLogs").push().set({
-      type: "CANJE_VALIDADO",
-      redemptionId: canjeActualId,
-      gerenteEmail: user.email || "",
-      gerenteUid: user.uid,
-      sucursalCanje: sucursal,
-      sucursalCanjeNombre: SUCURSALES[sucursal] || sucursal,
-      beneficio: canjeActualData.beneficio || "",
-      monto: Number(canjeActualData.monto || 0),
-      clienteEmail: canjeActualData.clienteEmail || "",
-      clienteNombre: canjeActualData.clienteNombre || "",
-      userId: canjeActualData.userId || "",
-      createdAt: now
-    });
+    try {
+      await rtdb.ref("auditLogs").push().set({
+        type: "CANJE_VALIDADO",
+        redemptionId: canjeActualId,
+        gerenteEmail: user.email || "",
+        gerenteUid: user.uid,
+        sucursalCanje: sucursal,
+        sucursalCanjeNombre: SUCURSALES[sucursal] || sucursal,
+        beneficio: canjeActualData?.beneficio || "",
+        monto: Number(canjeActualData?.monto || 0),
+        clienteEmail: canjeActualData?.clienteEmail || "",
+        clienteNombre: canjeActualData?.clienteNombre || "",
+        userId: canjeActualData?.userId || "",
+        createdAt: now
+      });
+    } catch (auditError) {
+      console.warn("Canje validado, pero no se pudo guardar auditLog:", auditError);
+    }
 
-    alert("Canje validado correctamente.");
+    alert("✅ Canje validado correctamente.");
 
     limpiarCanjeActual();
     cargarCanjesGerente();
@@ -455,7 +459,6 @@ async function validarCanjeGerente() {
     validandoCanje = false;
   }
 }
-
 // ================= TABLA CANJES =================
 
 function cargarCanjesGerente() {
