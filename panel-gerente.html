@@ -2,112 +2,245 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
   <title>Panel Gerente | Applebee’s Lealtad</title>
 
   <link rel="icon" type="image/png" sizes="32x32" href="manzanas.png" />
-  <link rel="stylesheet" href="gerente.css" />
+  <link rel="apple-touch-icon" href="manzanas256.png" />
+  <link rel="manifest" href="./manifest-gerente.json" />
+
+  <meta name="theme-color" content="#07111d" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Applebee’s Gerentes" />
+
+  <link rel="stylesheet" href="gerente.css?v=gerente_control_2" />
 </head>
 
 <body>
-  <main class="manager-page">
+  <div id="appStatus" class="app-status" role="status" aria-live="polite"></div>
 
-    <header class="manager-header">
-      <div>
-        <h1>Panel de Gerente</h1>
-        <p>Valida canjes de clientes por código QR</p>
+  <main class="manager-page">
+    <header class="manager-header manager-card">
+      <div class="manager-heading">
+        <div class="manager-brand-mini" aria-hidden="true">
+          <img src="manzanas.png" alt="" />
+        </div>
+
+        <div>
+          <p class="eyebrow">Applebee’s Lealtad</p>
+          <h1>Panel de Gerente</h1>
+          <p class="muted">Validación segura de canjes por código QR</p>
+        </div>
       </div>
 
-      <button class="btn-logout" onclick="cerrarSesionGerente()">
-        Salir
+      <button id="btnCerrarSesion" class="btn-logout" type="button">
+        Cerrar sesión
       </button>
     </header>
 
-    <section class="manager-card">
-      <h2>Escanear QR de canje</h2>
-      <p class="muted">Abre la cámara y escanea el QR generado por el cliente.</p>
+    <section class="manager-card session-card" aria-labelledby="sesionTitle">
+      <div class="session-profile">
+        <div id="gerenteIniciales" class="profile-avatar" aria-hidden="true">--</div>
 
-      <div id="qr-reader" class="qr-reader"></div>
+        <div class="session-data">
+          <p class="eyebrow" id="sesionTitle">Sesión activa</p>
+          <h2 id="gerenteNombre">Cargando gerente...</h2>
+          <p id="gerenteCorreo" class="muted">---</p>
 
-      <button class="btn-primary" onclick="iniciarScannerGerente()">
-        Abrir cámara
-      </button>
-
-      <button class="btn-secondary" onclick="detenerScannerGerente()">
-        Detener cámara
-      </button>
-    </section>
-
-    <section class="manager-card" id="canjeCard" style="display:none;">
-      <h2>Datos del canje</h2>
-
-      <div class="redeem-info">
-        <p><strong>Cliente:</strong> <span id="clienteCanje">---</span></p>
-        <p><strong>Beneficio:</strong> <span id="beneficioCanje">---</span></p>
-        <p><strong>Monto:</strong> <span id="montoCanje">$0.00</span></p>
-        <p><strong>Estado:</strong> <span id="estadoCanje">---</span></p>
+          <div class="session-badges">
+            <span id="gerenteRol" class="status-badge status-active">Gerente</span>
+            <span id="sesionEstado" class="status-badge status-secure">Sesión segura</span>
+          </div>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label>Sucursal donde se canjea</label>
-        <select id="sucursalCanje">
-          <option value="">Selecciona sucursal</option>
-          <option value="applebees_torres">Applebee’s Torres</option>
-          <option value="applebees_triunfo">Applebee’s Triunfo</option>
-          <option value="applebees_tecnologico">Applebee’s Tecnológico</option>
-        </select>
+      <div class="authorized-branches">
+        <p class="field-caption">Sucursales autorizadas</p>
+        <div id="gerenteSucursales" class="branch-list">
+          <span class="branch-chip">Cargando...</span>
+        </div>
       </div>
-
-      <button class="btn-primary" onclick="validarCanjeGerente()">
-        Validar canje
-      </button>
     </section>
 
-    <section class="manager-card">
-      <div class="table-header">
-        <div>
-          <h2>Canjes realizados</h2>
-          <p class="muted">Registro de validaciones hechas por gerentes.</p>
+    <div class="manager-grid">
+      <section class="manager-card scanner-card" aria-labelledby="scannerTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Paso 1</p>
+            <h2 id="scannerTitle">Escanear QR de canje</h2>
+            <p class="muted">Abre la cámara y enfoca el código generado por el cliente.</p>
+          </div>
+
+          <span id="scannerStatus" class="status-badge status-idle">Cámara detenida</span>
         </div>
 
-        <button class="btn-secondary" onclick="cargarCanjesGerente()">
+        <div id="qr-reader" class="qr-reader" aria-label="Lector de código QR">
+          <div id="scannerPlaceholder" class="scanner-placeholder">
+            <span class="scanner-frame" aria-hidden="true"></span>
+            <p>La cámara aparecerá aquí</p>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button id="btnAbrirCamara" class="btn-primary" type="button">
+            Abrir cámara
+          </button>
+
+          <button id="btnDetenerCamara" class="btn-secondary" type="button" disabled>
+            Detener cámara
+          </button>
+        </div>
+      </section>
+
+      <section class="manager-card redeem-card is-hidden" id="canjeCard" aria-labelledby="canjeTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Paso 2</p>
+            <h2 id="canjeTitle">Revisar datos del canje</h2>
+          </div>
+
+          <span id="estadoCanje" class="status-badge status-pending">Pendiente</span>
+        </div>
+
+        <dl class="redeem-details">
+          <div class="detail-item detail-main">
+            <dt>Cliente</dt>
+            <dd id="clienteCanje">---</dd>
+          </div>
+
+          <div class="detail-item">
+            <dt>Beneficio</dt>
+            <dd id="beneficioCanje">---</dd>
+          </div>
+
+          <div class="detail-item">
+            <dt>Monto</dt>
+            <dd id="montoCanje">$0.00</dd>
+          </div>
+
+          <div class="detail-item">
+            <dt>Folio</dt>
+            <dd id="folioCanje">---</dd>
+          </div>
+        </dl>
+
+        <div class="form-group">
+          <label for="sucursalCanje">Sucursal donde se realiza el canje</label>
+          <select id="sucursalCanje" disabled>
+            <option value="">Cargando sucursales autorizadas...</option>
+          </select>
+          <p id="sucursalAyuda" class="field-help">
+            Solo aparecerán las sucursales asignadas a tu cuenta.
+          </p>
+        </div>
+
+        <div class="validation-owner">
+          <span>Responsable de la validación</span>
+          <strong id="responsableCanje">---</strong>
+        </div>
+
+        <button id="btnValidarCanje" class="btn-primary" type="button" disabled>
+          Confirmar y aplicar canje
+        </button>
+
+        <button id="btnCancelarCanje" class="btn-text" type="button">
+          Cancelar revisión
+        </button>
+      </section>
+    </div>
+
+    <section class="manager-card history-card" aria-labelledby="historialTitle">
+      <div class="table-header">
+        <div>
+          <p class="eyebrow">Control de operaciones</p>
+          <h2 id="historialTitle">Canjes realizados</h2>
+          <p class="muted">Consulta quién validó cada beneficio, cuándo y en qué sucursal.</p>
+        </div>
+
+        <button id="btnActualizarCanjes" class="btn-secondary btn-auto" type="button">
           Actualizar
         </button>
       </div>
 
-      <div class="table-wrapper">
+      <div class="history-filters" role="search">
+        <div class="form-group search-group">
+          <label for="buscarCanje">Buscar registro</label>
+          <input
+            id="buscarCanje"
+            type="search"
+            placeholder="Cliente, gerente, beneficio o folio"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="filtroSucursal">Sucursal</label>
+          <select id="filtroSucursal">
+            <option value="">Todas las autorizadas</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="history-summary">
+        <span id="contadorCanjes">0 registros</span>
+        <span id="ultimaActualizacion">Sin actualizar</span>
+      </div>
+
+      <div class="table-wrapper" tabindex="0" aria-label="Historial desplazable de canjes">
         <table>
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Cliente</th>
-              <th>Beneficio</th>
-              <th>Monto</th>
-              <th>Sucursal</th>
-              <th>Gerente</th>
+              <th scope="col">Fecha</th>
+              <th scope="col">Cliente</th>
+              <th scope="col">Beneficio</th>
+              <th scope="col">Monto</th>
+              <th scope="col">Sucursal</th>
+              <th scope="col">Gerente</th>
+              <th scope="col">Folio</th>
             </tr>
           </thead>
+
           <tbody id="tablaCanjes">
             <tr>
-              <td colspan="6">Cargando canjes...</td>
+              <td colspan="7" class="table-message">Cargando canjes...</td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
-
   </main>
+
+  <div id="modalConfirmarCanje" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-labelledby="modalCanjeTitle">
+    <div class="confirm-modal">
+      <p class="eyebrow">Confirmación requerida</p>
+      <h2 id="modalCanjeTitle">¿Aplicar este canje?</h2>
+      <p id="modalCanjeResumen" class="muted">
+        Verifica que el beneficio y la sucursal sean correctos antes de continuar.
+      </p>
+
+      <div class="modal-actions">
+        <button id="btnConfirmarModal" class="btn-primary" type="button">
+          Sí, aplicar canje
+        </button>
+
+        <button id="btnCancelarModal" class="btn-secondary" type="button">
+          Regresar y revisar
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <script src="firebase.js?v=gerente_final_presentacion_2"></script>
-  <script src="gerente.js?v=qr_update_final_2"></script>
-  
+  <script src="firebase.js?v=gerente_control_2"></script>
+  <script src="gerente.js?v=gerente_control_2"></script>
 </body>
 </html>
