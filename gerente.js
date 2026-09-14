@@ -1100,6 +1100,8 @@ await cargarCanjesGerente();
   actualizarBotonValidar();
 }
 
+} // ← CIERRA validarCanjeGerente()
+
 // ================= HISTORIAL =================
 
 async function cargarCanjesGerente() {
