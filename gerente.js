@@ -852,45 +852,149 @@ async function validarCanjeGerente() {
     renderizarPerfilGerente();
 
     const redemptionRef = rtdb.ref(`redemptions/${originalId}`);
-    const transactionResult = await redemptionRef.transaction(current => {
-      if (!current || normalizarStatus(current.status) !== "pendiente") {
-        return;
-      }
 
-      const expiresAt = Number(current.expiresAt || current.expiraAt || 0);
-      if (Number.isFinite(expiresAt) && expiresAt > 0 && expiresAt < Date.now()) {
-        return;
-      }
+// Primero obtenemos el estado real directamente desde Firebase.
+const freshSnapshot = await redemptionRef.once("value");
+const freshData = freshSnapshot.val();
 
-      return {
-        ...current,
-        status: "canjeado",
-        sucursalCanje: branch,
-        sucursalCanjeNombre: nombreSucursal(branch),
-        gerenteUid: gerenteActual.uid,
-        gerenteNombre: gerenteActual.nombre,
-        gerenteEmail: gerenteActual.email,
-        gerenteRol: gerenteActual.role,
-        redeemedAt: firebase.database.ServerValue.TIMESTAMP,
-        validationId,
-        validation: {
-          id: validationId,
-          gerenteUid: gerenteActual.uid,
-          gerenteNombre: gerenteActual.nombre,
-          gerenteEmail: gerenteActual.email,
-          sucursalId: branch,
-          sucursalNombre: nombreSucursal(branch),
-          createdAt: firebase.database.ServerValue.TIMESTAMP
-        }
-      };
-    }, undefined, false);
+if (!freshData) {
+  mostrarEstadoApp(
+    "Este QR ya no existe o dejó de estar disponible.",
+    "error",
+    6500
+  );
 
-    if (!transactionResult.committed) {
-      mostrarEstadoApp("Este QR ya fue utilizado, venció o dejó de estar disponible.", "error", 6500);
-      limpiarCanjeActual();
-      await cargarCanjesGerente();
-      return;
+  limpiarCanjeActual();
+  await cargarCanjesGerente();
+  return;
+}
+
+const freshStatus = normalizarStatus(freshData.status);
+
+if (freshStatus !== "pendiente") {
+  mostrarEstadoApp(
+    `Este QR ya no está disponible. Estado actual: ${freshStatus || "desconocido"}.`,
+    "error",
+    6500
+  );
+
+  limpiarCanjeActual();
+  await cargarCanjesGerente();
+  return;
+}
+
+const freshExpiresAt = Number(
+  freshData.expiresAt ||
+  freshData.expiraAt ||
+  0
+);
+
+if (
+  Number.isFinite(freshExpiresAt) &&
+  freshExpiresAt > 0 &&
+  freshExpiresAt < Date.now()
+) {
+  mostrarEstadoApp(
+    "Este QR está vencido y ya no puede aplicarse.",
+    "error",
+    6500
+  );
+
+  limpiarCanjeActual();
+  await cargarCanjesGerente();
+  return;
+}
+
+
+// AHORA SÍ HACEMOS LA TRANSACCIÓN ATÓMICA
+const transactionResult = await redemptionRef.transaction(current => {
+
+  // Si durante esos milisegundos otro gerente ya lo utilizó,
+  // Firebase cancelará la operación.
+  if (!current) {
+    return;
+  }
+
+  if (normalizarStatus(current.status) !== "pendiente") {
+    return;
+  }
+
+  const expiresAt = Number(
+    current.expiresAt ||
+    current.expiraAt ||
+    0
+  );
+
+  if (
+    Number.isFinite(expiresAt) &&
+    expiresAt > 0 &&
+    expiresAt < Date.now()
+  ) {
+    return;
+  }
+
+  return {
+    ...current,
+
+    status: "canjeado",
+
+    sucursalCanje: branch,
+    sucursalCanjeNombre: nombreSucursal(branch),
+
+    gerenteUid: gerenteActual.uid,
+    gerenteNombre: gerenteActual.nombre,
+    gerenteEmail: gerenteActual.email,
+    gerenteRol: gerenteActual.role,
+
+    redeemedAt: firebase.database.ServerValue.TIMESTAMP,
+
+    validationId,
+
+    validation: {
+      id: validationId,
+
+      gerenteUid: gerenteActual.uid,
+      gerenteNombre: gerenteActual.nombre,
+      gerenteEmail: gerenteActual.email,
+
+      sucursalId: branch,
+      sucursalNombre: nombreSucursal(branch),
+
+      createdAt: firebase.database.ServerValue.TIMESTAMP
     }
+  };
+
+}, undefined, false);
+
+ if (!transactionResult.committed) {
+
+  const diagnosticoSnap = await redemptionRef.once("value");
+  const diagnostico = diagnosticoSnap.val();
+
+  console.error(
+    "DIAGNÓSTICO CANJE NO CONFIRMADO:",
+    {
+      redemptionId: originalId,
+      existe: diagnosticoSnap.exists(),
+      status: diagnostico?.status,
+      expiresAt: diagnostico?.expiresAt,
+      expiraAt: diagnostico?.expiraAt,
+      registroCompleto: diagnostico
+    }
+  );
+
+  mostrarEstadoApp(
+    `No se pudo aplicar el QR. Estado actual: ${
+      diagnostico?.status || "no encontrado"
+    }. Revisa la consola para diagnóstico.`,
+    "error",
+    8000
+  );
+
+  limpiarCanjeActual();
+  await cargarCanjesGerente();
+  return;
+}
 
     const saved = transactionResult.snapshot.val() || {};
 
