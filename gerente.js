@@ -909,19 +909,26 @@ if (
 // AHORA SÍ HACEMOS LA TRANSACCIÓN ATÓMICA
 const transactionResult = await redemptionRef.transaction(current => {
 
-  // Si durante esos milisegundos otro gerente ya lo utilizó,
-  // Firebase cancelará la operación.
-  if (!current) {
+  /*
+   * Firebase puede ejecutar inicialmente esta función con null
+   * aunque el registro exista en el servidor.
+   *
+   * Como justo antes hicimos once("value"), usamos freshData
+   * únicamente como respaldo para esa primera ejecución.
+   */
+  const currentData = current || freshData;
+
+  if (!currentData) {
     return;
   }
 
-  if (normalizarStatus(current.status) !== "pendiente") {
+  if (normalizarStatus(currentData.status) !== "pendiente") {
     return;
   }
 
   const expiresAt = Number(
-    current.expiresAt ||
-    current.expiraAt ||
+    currentData.expiresAt ||
+    currentData.expiraAt ||
     0
   );
 
@@ -934,7 +941,7 @@ const transactionResult = await redemptionRef.transaction(current => {
   }
 
   return {
-    ...current,
+    ...currentData,
 
     status: "canjeado",
 
@@ -965,8 +972,8 @@ const transactionResult = await redemptionRef.transaction(current => {
   };
 
 }, undefined, false);
-
- if (!transactionResult.committed) {
+    
+if (!transactionResult.committed) {
 
   const diagnosticoSnap = await redemptionRef.once("value");
   const diagnostico = diagnosticoSnap.val();
@@ -983,64 +990,114 @@ const transactionResult = await redemptionRef.transaction(current => {
     }
   );
 
-  mostrarEstadoApp(
-    `No se pudo aplicar el QR. Estado actual: ${
-      diagnostico?.status || "no encontrado"
-    }. Revisa la consola para diagnóstico.`,
-    "error",
-    8000
+  const statusActual = normalizarStatus(
+    diagnostico?.status
   );
+
+  if (!diagnostico) {
+    mostrarEstadoApp(
+      "El registro del QR ya no existe en Firebase.",
+      "error",
+      8000
+    );
+  } else if (statusActual !== "pendiente") {
+    mostrarEstadoApp(
+      `Este QR ya no está disponible. Estado actual: ${statusActual || "desconocido"}.`,
+      "error",
+      8000
+    );
+  } else {
+    mostrarEstadoApp(
+      "No se pudo aplicar el QR. El registro sigue pendiente. Revisa la consola para diagnóstico.",
+      "error",
+      8000
+    );
+  }
 
   limpiarCanjeActual();
   await cargarCanjesGerente();
   return;
 }
 
-    const saved = transactionResult.snapshot.val() || {};
+const saved = transactionResult.snapshot.val() || {};
 
-    try {
-      await rtdb.ref(`auditLogs/${validationId}`).set({
-        type: "CANJE_VALIDADO",
-        validationId,
-        redemptionKey: originalId,
-        redemptionId: saved.redemptionId || originalId,
-        gerenteUid: gerenteActual.uid,
-        gerenteNombre: gerenteActual.nombre,
-        gerenteEmail: gerenteActual.email,
-        gerenteRol: gerenteActual.role,
-        sucursalCanje: branch,
-        sucursalCanjeNombre: nombreSucursal(branch),
-        beneficio: saved.beneficio || "",
-        monto: Number(saved.monto || 0),
-        clienteEmail: saved.clienteEmail || "",
-        clienteNombre: saved.clienteNombre || "",
-        userId: saved.userId || "",
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-      });
-    } catch (auditError) {
-      // La información del responsable ya quedó dentro del propio canje.
-      console.warn("No se pudo duplicar el registro en auditLogs:", auditError);
-    }
+try {
+  await rtdb.ref(`auditLogs/${validationId}`).set({
+    type: "CANJE_VALIDADO",
+    validationId,
+    redemptionKey: originalId,
+    redemptionId: saved.redemptionId || originalId,
+    gerenteUid: gerenteActual.uid,
+    gerenteNombre: gerenteActual.nombre,
+    gerenteEmail: gerenteActual.email,
+    gerenteRol: gerenteActual.role,
+    sucursalCanje: branch,
+    sucursalCanjeNombre: nombreSucursal(branch),
+    beneficio: saved.beneficio || "",
+    monto: Number(saved.monto || 0),
+    clienteEmail: saved.clienteEmail || "",
+    clienteNombre: saved.clienteNombre || "",
+    userId: saved.userId || "",
+    createdAt: firebase.database.ServerValue.TIMESTAMP
+  });
+} catch (auditError) {
+  console.warn(
+    "No se pudo duplicar el registro en auditLogs:",
+    auditError
+  );
+}
 
-    mostrarEstadoApp("Canje aplicado correctamente.", "success", 5500);
-    limpiarCanjeActual();
-    await cargarCanjesGerente();
-  } catch (error) {
-    console.error("Error aplicando el canje:", error);
+mostrarEstadoApp(
+  "Canje aplicado correctamente.",
+  "success",
+  5500
+);
 
-    if (error.message === "BRANCH_NOT_AUTHORIZED") {
-      mostrarEstadoApp("Ya no tienes autorización para validar en esa sucursal.", "error");
-      cargarSelectoresSucursales();
-    } else if (error.message === "PROFILE_NOT_AUTHORIZED") {
-      mostrarEstadoApp("Tu cuenta dejó de estar autorizada. La sesión se cerrará.", "error");
-      window.setTimeout(cerrarSesionGerente, 1800);
-    } else {
-      mostrarEstadoApp("No fue posible aplicar el canje. Inténtalo nuevamente.", "error");
-    }
-  } finally {
-    validandoCanje = false;
-    actualizarBotonValidar();
+limpiarCanjeActual();
+await cargarCanjesGerente();
+
+} catch (error) {
+
+  console.error(
+    "Error aplicando el canje:",
+    error
+  );
+
+  if (error.message === "BRANCH_NOT_AUTHORIZED") {
+
+    mostrarEstadoApp(
+      "Ya no tienes autorización para validar en esa sucursal.",
+      "error"
+    );
+
+    cargarSelectoresSucursales();
+
+  } else if (
+    error.message === "PROFILE_NOT_AUTHORIZED"
+  ) {
+
+    mostrarEstadoApp(
+      "Tu cuenta dejó de estar autorizada. La sesión se cerrará.",
+      "error"
+    );
+
+    window.setTimeout(
+      cerrarSesionGerente,
+      1800
+    );
+
+  } else {
+
+    mostrarEstadoApp(
+      "No fue posible aplicar el canje. Inténtalo nuevamente.",
+      "error"
+    );
   }
+
+} finally {
+
+  validandoCanje = false;
+  actualizarBotonValidar();
 }
 
 // ================= HISTORIAL =================
