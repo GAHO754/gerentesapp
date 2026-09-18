@@ -1,246 +1,752 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-  <title>Panel Gerente | Applebee’s Lealtad</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
 
-  <link rel="icon" type="image/png" sizes="32x32" href="manzanas.png" />
-  <link rel="apple-touch-icon" href="manzanas256.png" />
-  <link rel="manifest" href="./manifest-gerente.json" />
+  <title>Panel | Applebee’s Lealtad</title>
 
-  <meta name="theme-color" content="#07111d" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Applebee’s Gerentes" />
+  <!-- ================= ICONOS ================= -->
 
-  <link rel="stylesheet" href="gerente.css?v=gerente_control_2" />
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="32x32"
+    href="manzanas.png"
+  />
+
+  <link
+    rel="apple-touch-icon"
+    href="manzanas256.png"
+  />
+
+  <!-- ================= PWA ================= -->
+
+  <link
+    rel="manifest"
+    href="./manifest-gerente.json"
+  />
+
+  <meta
+    name="theme-color"
+    content="#07111d"
+  />
+
+  <meta
+    name="mobile-web-app-capable"
+    content="yes"
+  />
+
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  />
+
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black-translucent"
+  />
+
+  <meta
+    name="apple-mobile-web-app-title"
+    content="Applebee’s Gerentes"
+  />
+
+  <!-- ================= ESTILOS ================= -->
+
+  <link
+    rel="stylesheet"
+    href="gerente.css?v=operadores_v1"
+  />
 </head>
 
+
 <body>
-  <div id="appStatus" class="app-status" role="status" aria-live="polite"></div>
+
+  <!-- ================= ESTADO GENERAL ================= -->
+
+  <div
+    id="appStatus"
+    class="app-status"
+    role="status"
+    aria-live="polite"
+  ></div>
+
+
+  <!-- =====================================================
+       PANEL PRINCIPAL
+       ===================================================== -->
 
   <main class="manager-page">
+
+    <!-- ================= ENCABEZADO ================= -->
+
     <header class="manager-header manager-card">
+
       <div class="manager-heading">
-        <div class="manager-brand-mini" aria-hidden="true">
-          <img src="manzanas.png" alt="" />
-        </div>
 
-        <div>
-          <p class="eyebrow">Applebee’s Lealtad</p>
-          <h1>Panel de Gerente</h1>
-          <p class="muted">Validación segura de canjes por código QR</p>
-        </div>
-      </div>
-
-      <button id="btnCerrarSesion" class="btn-logout" type="button">
-        Cerrar sesión
-      </button>
-    </header>
-
-    <section class="manager-card session-card" aria-labelledby="sesionTitle">
-      <div class="session-profile">
-        <div id="gerenteIniciales" class="profile-avatar" aria-hidden="true">--</div>
-
-        <div class="session-data">
-          <p class="eyebrow" id="sesionTitle">Sesión activa</p>
-          <h2 id="gerenteNombre">Cargando gerente...</h2>
-          <p id="gerenteCorreo" class="muted">---</p>
-
-          <div class="session-badges">
-            <span id="gerenteRol" class="status-badge status-active">Gerente</span>
-            <span id="sesionEstado" class="status-badge status-secure">Sesión segura</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="authorized-branches">
-        <p class="field-caption">Sucursales autorizadas</p>
-        <div id="gerenteSucursales" class="branch-list">
-          <span class="branch-chip">Cargando...</span>
-        </div>
-      </div>
-    </section>
-
-    <div class="manager-grid">
-      <section class="manager-card scanner-card" aria-labelledby="scannerTitle">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Paso 1</p>
-            <h2 id="scannerTitle">Escanear QR de canje</h2>
-            <p class="muted">Abre la cámara y enfoca el código generado por el cliente.</p>
-          </div>
-
-          <span id="scannerStatus" class="status-badge status-idle">Cámara detenida</span>
-        </div>
-
-        <div id="qr-reader" class="qr-reader" aria-label="Lector de código QR">
-          <div id="scannerPlaceholder" class="scanner-placeholder">
-            <span class="scanner-frame" aria-hidden="true"></span>
-            <p>La cámara aparecerá aquí</p>
-          </div>
-        </div>
-
-        <div class="button-row">
-          <button id="btnAbrirCamara" class="btn-primary" type="button">
-            Abrir cámara
-          </button>
-
-          <button id="btnDetenerCamara" class="btn-secondary" type="button" disabled>
-            Detener cámara
-          </button>
-        </div>
-      </section>
-
-      <section class="manager-card redeem-card is-hidden" id="canjeCard" aria-labelledby="canjeTitle">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Paso 2</p>
-            <h2 id="canjeTitle">Revisar datos del canje</h2>
-          </div>
-
-          <span id="estadoCanje" class="status-badge status-pending">Pendiente</span>
-        </div>
-
-        <dl class="redeem-details">
-          <div class="detail-item detail-main">
-            <dt>Cliente</dt>
-            <dd id="clienteCanje">---</dd>
-          </div>
-
-          <div class="detail-item">
-            <dt>Beneficio</dt>
-            <dd id="beneficioCanje">---</dd>
-          </div>
-
-          <div class="detail-item">
-            <dt>Monto</dt>
-            <dd id="montoCanje">$0.00</dd>
-          </div>
-
-          <div class="detail-item">
-            <dt>Folio</dt>
-            <dd id="folioCanje">---</dd>
-          </div>
-        </dl>
-
-        <div class="form-group">
-          <label for="sucursalCanje">Sucursal donde se realiza el canje</label>
-          <select id="sucursalCanje" disabled>
-            <option value="">Cargando sucursales autorizadas...</option>
-          </select>
-          <p id="sucursalAyuda" class="field-help">
-            Solo aparecerán las sucursales asignadas a tu cuenta.
-          </p>
-        </div>
-
-        <div class="validation-owner">
-          <span>Responsable de la validación</span>
-          <strong id="responsableCanje">---</strong>
-        </div>
-
-        <button id="btnValidarCanje" class="btn-primary" type="button" disabled>
-          Confirmar y aplicar canje
-        </button>
-
-        <button id="btnCancelarCanje" class="btn-text" type="button">
-          Cancelar revisión
-        </button>
-      </section>
-    </div>
-
-    <section class="manager-card history-card" aria-labelledby="historialTitle">
-      <div class="table-header">
-        <div>
-          <p class="eyebrow">Control de operaciones</p>
-          <h2 id="historialTitle">Canjes realizados</h2>
-          <p class="muted">Consulta quién validó cada beneficio, cuándo y en qué sucursal.</p>
-        </div>
-
-        <button id="btnActualizarCanjes" class="btn-secondary btn-auto" type="button">
-          Actualizar
-        </button>
-      </div>
-
-      <div class="history-filters" role="search">
-        <div class="form-group search-group">
-          <label for="buscarCanje">Buscar registro</label>
-          <input
-            id="buscarCanje"
-            type="search"
-            placeholder="Cliente, gerente, beneficio o folio"
-            autocomplete="off"
+        <div
+          class="manager-brand-mini"
+          aria-hidden="true"
+        >
+          <img
+            src="manzanas.png"
+            alt=""
           />
         </div>
 
-        <div class="form-group">
-          <label for="filtroSucursal">Sucursal</label>
-          <select id="filtroSucursal">
-            <option value="">Todas las autorizadas</option>
-          </select>
+        <div>
+
+          <p class="eyebrow">
+            Applebee’s Lealtad
+          </p>
+
+          <h1 id="panelTitle">
+            Panel de Gerente
+          </h1>
+
+          <p
+            id="panelSubtitle"
+            class="muted"
+          >
+            Validación segura de canjes por código QR
+          </p>
+
         </div>
+
       </div>
+
+
+      <button
+        id="btnCerrarSesion"
+        class="btn-logout"
+        type="button"
+      >
+        Cerrar sesión
+      </button>
+
+    </header>
+
+
+    <!-- =====================================================
+         SESIÓN ACTIVA
+         ===================================================== -->
+
+    <section
+      class="manager-card session-card"
+      aria-labelledby="sesionTitle"
+    >
+
+      <div class="session-profile">
+
+        <div
+          id="gerenteIniciales"
+          class="profile-avatar"
+          aria-hidden="true"
+        >
+          --
+        </div>
+
+
+        <div class="session-data">
+
+          <p
+            class="eyebrow"
+            id="sesionTitle"
+          >
+            Sesión activa
+          </p>
+
+          <h2 id="gerenteNombre">
+            Cargando...
+          </h2>
+
+          <p
+            id="gerenteCorreo"
+            class="muted"
+          >
+            ---
+          </p>
+
+
+          <div class="session-badges">
+
+            <span
+              id="gerenteRol"
+              class="status-badge status-active"
+            >
+              Gerente
+            </span>
+
+            <span
+              id="sesionEstado"
+              class="status-badge status-secure"
+            >
+              Sesión segura
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ================= SUCURSALES ================= -->
+
+      <div class="authorized-branches">
+
+        <p class="field-caption">
+          Sucursales autorizadas
+        </p>
+
+        <div
+          id="gerenteSucursales"
+          class="branch-list"
+        >
+
+          <span class="branch-chip">
+            Cargando...
+          </span>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         ESCÁNER + CANJE
+         ===================================================== -->
+
+    <div class="manager-grid">
+
+      <!-- ================= PASO 1: ESCÁNER ================= -->
+
+      <section
+        class="manager-card scanner-card"
+        aria-labelledby="scannerTitle"
+      >
+
+        <div class="section-heading">
+
+          <div>
+
+            <p class="eyebrow">
+              Paso 1
+            </p>
+
+            <h2 id="scannerTitle">
+              Escanear QR de canje
+            </h2>
+
+            <p class="muted">
+              Abre la cámara y enfoca el código
+              generado por el cliente.
+            </p>
+
+          </div>
+
+
+          <span
+            id="scannerStatus"
+            class="status-badge status-idle"
+          >
+            Cámara detenida
+          </span>
+
+        </div>
+
+
+        <!-- ================= LECTOR QR ================= -->
+
+        <div
+          id="qr-reader"
+          class="qr-reader"
+          aria-label="Lector de código QR"
+        >
+
+          <div
+            id="scannerPlaceholder"
+            class="scanner-placeholder"
+          >
+
+            <span
+              class="scanner-frame"
+              aria-hidden="true"
+            ></span>
+
+            <p>
+              La cámara aparecerá aquí
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <!-- ================= BOTONES CÁMARA ================= -->
+
+        <div class="button-row">
+
+          <button
+            id="btnAbrirCamara"
+            class="btn-primary"
+            type="button"
+          >
+            Abrir cámara
+          </button>
+
+          <button
+            id="btnDetenerCamara"
+            class="btn-secondary"
+            type="button"
+            disabled
+          >
+            Detener cámara
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- ===================================================
+           PASO 2: REVISAR CANJE
+           =================================================== -->
+
+      <section
+        class="manager-card redeem-card is-hidden"
+        id="canjeCard"
+        aria-labelledby="canjeTitle"
+      >
+
+        <div class="section-heading">
+
+          <div>
+
+            <p class="eyebrow">
+              Paso 2
+            </p>
+
+            <h2 id="canjeTitle">
+              Revisar datos del canje
+            </h2>
+
+          </div>
+
+
+          <span
+            id="estadoCanje"
+            class="status-badge status-pending"
+          >
+            Pendiente
+          </span>
+
+        </div>
+
+
+        <!-- ================= DETALLES CANJE ================= -->
+
+        <dl class="redeem-details">
+
+          <div class="detail-item detail-main">
+
+            <dt>
+              Cliente
+            </dt>
+
+            <dd id="clienteCanje">
+              ---
+            </dd>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <dt>
+              Beneficio
+            </dt>
+
+            <dd id="beneficioCanje">
+              ---
+            </dd>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <dt>
+              Monto
+            </dt>
+
+            <dd id="montoCanje">
+              $0.00
+            </dd>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <dt>
+              Folio
+            </dt>
+
+            <dd id="folioCanje">
+              ---
+            </dd>
+
+          </div>
+
+        </dl>
+
+
+        <!-- ================= SUCURSAL CANJE ================= -->
+
+        <div class="form-group">
+
+          <label for="sucursalCanje">
+            Sucursal donde se realiza el canje
+          </label>
+
+          <select
+            id="sucursalCanje"
+            disabled
+          >
+
+            <option value="">
+              Cargando sucursales autorizadas...
+            </option>
+
+          </select>
+
+
+          <p
+            id="sucursalAyuda"
+            class="field-help"
+          >
+            Solo aparecerán las sucursales
+            asignadas a tu cuenta.
+          </p>
+
+        </div>
+
+
+        <!-- ================= RESPONSABLE ================= -->
+
+        <div class="validation-owner">
+
+          <span>
+            Responsable de la validación
+          </span>
+
+          <strong id="responsableCanje">
+            ---
+          </strong>
+
+        </div>
+
+
+        <!-- ================= ACCIONES CANJE ================= -->
+
+        <button
+          id="btnValidarCanje"
+          class="btn-primary"
+          type="button"
+          disabled
+        >
+          Confirmar y aplicar canje
+        </button>
+
+
+        <button
+          id="btnCancelarCanje"
+          class="btn-text"
+          type="button"
+        >
+          Cancelar revisión
+        </button>
+
+      </section>
+
+    </div>
+
+
+    <!-- =====================================================
+         HISTORIAL
+         ===================================================== -->
+
+    <section
+      class="manager-card history-card"
+      aria-labelledby="historialTitle"
+    >
+
+      <!-- ================= ENCABEZADO HISTORIAL ================= -->
+
+      <div class="table-header">
+
+        <div>
+
+          <p class="eyebrow">
+            Control de operaciones
+          </p>
+
+          <h2 id="historialTitle">
+            Canjes realizados
+          </h2>
+
+          <p class="muted">
+            Consulta quién validó cada beneficio,
+            cuándo y en qué sucursal.
+          </p>
+
+        </div>
+
+
+        <button
+          id="btnActualizarCanjes"
+          class="btn-secondary btn-auto"
+          type="button"
+        >
+          Actualizar
+        </button>
+
+      </div>
+
+
+      <!-- ================= FILTROS ================= -->
+
+      <div
+        class="history-filters"
+        role="search"
+      >
+
+        <div class="form-group search-group">
+
+          <label for="buscarCanje">
+            Buscar registro
+          </label>
+
+          <input
+            id="buscarCanje"
+            type="search"
+            placeholder="Cliente, responsable, beneficio o folio"
+            autocomplete="off"
+          />
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="filtroSucursal">
+            Sucursal
+          </label>
+
+          <select id="filtroSucursal">
+
+            <option value="">
+              Todas las autorizadas
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <!-- ================= RESUMEN ================= -->
 
       <div class="history-summary">
-        <span id="contadorCanjes">0 registros</span>
-        <span id="ultimaActualizacion">Sin actualizar</span>
+
+        <span id="contadorCanjes">
+          0 registros
+        </span>
+
+        <span id="ultimaActualizacion">
+          Sin actualizar
+        </span>
+
       </div>
 
-      <div class="table-wrapper" tabindex="0" aria-label="Historial desplazable de canjes">
+
+      <!-- ================= TABLA ================= -->
+
+      <div
+        class="table-wrapper"
+        tabindex="0"
+        aria-label="Historial desplazable de canjes"
+      >
+
         <table>
+
           <thead>
+
             <tr>
-              <th scope="col">Fecha</th>
-              <th scope="col">Cliente</th>
-              <th scope="col">Beneficio</th>
-              <th scope="col">Monto</th>
-              <th scope="col">Sucursal</th>
-              <th scope="col">Gerente</th>
-              <th scope="col">Folio</th>
+
+              <th>
+                Fecha
+              </th>
+
+              <th>
+                Cliente
+              </th>
+
+              <th>
+                Beneficio
+              </th>
+
+              <th>
+                Monto
+              </th>
+
+              <th>
+                Sucursal
+              </th>
+
+              <th>
+                Responsable
+              </th>
+
+              <th>
+                Folio
+              </th>
+
             </tr>
+
           </thead>
 
+
           <tbody id="tablaCanjes">
+
             <tr>
-              <td colspan="7" class="table-message">Cargando canjes...</td>
+
+              <td
+                colspan="7"
+                class="table-message"
+              >
+                Cargando canjes...
+              </td>
+
             </tr>
+
           </tbody>
+
         </table>
+
       </div>
+
     </section>
+
   </main>
 
-  <div id="modalConfirmarCanje" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-labelledby="modalCanjeTitle">
+
+  <!-- =====================================================
+       MODAL CONFIRMAR CANJE
+       ===================================================== -->
+
+  <div
+    id="modalConfirmarCanje"
+    class="modal-backdrop is-hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalCanjeTitle"
+  >
+
     <div class="confirm-modal">
-      <p class="eyebrow">Confirmación requerida</p>
-      <h2 id="modalCanjeTitle">¿Aplicar este canje?</h2>
-      <p id="modalCanjeResumen" class="muted">
-        Verifica que el beneficio y la sucursal sean correctos antes de continuar.
+
+      <p class="eyebrow">
+        Confirmación requerida
       </p>
 
+      <h2 id="modalCanjeTitle">
+        ¿Aplicar este canje?
+      </h2>
+
+      <p
+        id="modalCanjeResumen"
+        class="muted"
+      >
+        Verifica que el beneficio y la sucursal
+        sean correctos antes de continuar.
+      </p>
+
+
       <div class="modal-actions">
-        <button id="btnConfirmarModal" class="btn-primary" type="button">
+
+        <button
+          id="btnConfirmarModal"
+          class="btn-primary"
+          type="button"
+        >
           Sí, aplicar canje
         </button>
 
-        <button id="btnCancelarModal" class="btn-secondary" type="button">
+        <button
+          id="btnCancelarModal"
+          class="btn-secondary"
+          type="button"
+        >
           Regresar y revisar
         </button>
+
       </div>
+
     </div>
+
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-  <script src="firebase.js?v=gerente_control_2"></script>
-  <script src="gerente.js?v=gerente_control_2"></script>
+  <!-- =====================================================
+       FIREBASE
+       ===================================================== -->
+
+  <script
+    src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"
+  ></script>
+
+  <script
+    src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"
+  ></script>
+
+  <script
+    src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"
+  ></script>
+
+  <script
+    src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"
+  ></script>
+
+  <script
+    src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"
+  ></script>
+
+
+  <!-- ================= LECTOR QR ================= -->
+
+  <script
+    src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
+  ></script>
+
+
+  <!-- =====================================================
+       ARCHIVOS DE LA APP
+       ===================================================== -->
+
+  <script src="firebase.js?v=operadores_v1"></script>
+
+  <script src="gerente.js?v=operadores_v1"></script>
+
 </body>
+
 </html>
