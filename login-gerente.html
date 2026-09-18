@@ -1,71 +1,199 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
 
   <title>Gerentes | Applebee’s Lealtad</title>
 
-  <link rel="icon" type="image/png" sizes="32x32" href="manzanas.png" />
-  <link rel="apple-touch-icon" href="manzanas256.png" />
-  <link rel="manifest" href="./manifest-gerente.json" />
+  <!-- ================= ICONOS ================= -->
 
-  <meta name="theme-color" content="#07111d" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Applebee’s Gerentes" />
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="32x32"
+    href="manzanas.png"
+  />
 
-  <link rel="stylesheet" href="gerente.css?v=gerente_control_3" />
+  <link
+    rel="apple-touch-icon"
+    href="manzanas256.png"
+  />
 
+  <!-- ================= PWA ================= -->
+
+  <link
+    rel="manifest"
+    href="./manifest-gerente.json"
+  />
+
+  <meta
+    name="theme-color"
+    content="#07111d"
+  />
+
+  <meta
+    name="mobile-web-app-capable"
+    content="yes"
+  />
+
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  />
+
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black-translucent"
+  />
+
+  <meta
+    name="apple-mobile-web-app-title"
+    content="Applebee’s Gerentes"
+  />
+
+  <!-- ================= ESTILOS ================= -->
+
+  <link
+    rel="stylesheet"
+    href="gerente.css?v=operadores_v1"
+  />
 </head>
 
+
 <body class="auth-body">
-  <div id="appStatus" class="app-status" role="status" aria-live="polite"></div>
 
-  <aside id="installBoxGerente" class="pwa-install" aria-label="Instalar aplicación">
+  <!-- ================= ESTADO GENERAL ================= -->
+
+  <div
+    id="appStatus"
+    class="app-status"
+    role="status"
+    aria-live="polite"
+  ></div>
+
+
+  <!-- ================= INSTALACIÓN PWA ================= -->
+
+  <aside
+    id="installBoxGerente"
+    class="pwa-install"
+    aria-label="Instalar aplicación"
+  >
+
     <div class="pwa-row">
+
       <div>
-        <div class="pwa-title">Instala la app de gerentes</div>
-        <div class="pwa-sub">Acceso rápido para validar canjes</div>
-      </div>
 
-      <button id="btnInstallGerente" class="pwa-btn" type="button" style="display:none">
-        Instalar
-      </button>
-    </div>
-
-    <div id="iosHintGerente" class="pwa-ios" style="display:none">
-      En iPhone, abre esta página en <strong>Safari</strong>, presiona
-      <strong>Compartir</strong> y selecciona
-      <strong>Agregar a pantalla de inicio</strong>.
-    </div>
-  </aside>
-
-  <main class="manager-auth-page">
-    <section class="manager-auth-card" aria-labelledby="loginTitle">
-      <div class="manager-brand">
-        <div class="manager-logo">
-          <img src="manzanas.png" alt="Logotipo de Applebee’s" />
+        <div class="pwa-title">
+          Instala la app de gerentes
         </div>
 
-        <p class="eyebrow">Applebee’s Lealtad</p>
-        <h1>Acceso de gerentes</h1>
-        <p>Validación segura de beneficios y canjes</p>
+        <div class="pwa-sub">
+          Acceso rápido para validar canjes
+        </div>
+
       </div>
+
+      <button
+        id="btnInstallGerente"
+        class="pwa-btn"
+        type="button"
+        style="display:none"
+      >
+        Instalar
+      </button>
+
+    </div>
+
+
+    <div
+      id="iosHintGerente"
+      class="pwa-ios"
+      style="display:none"
+    >
+      En iPhone, abre esta página en
+      <strong>Safari</strong>,
+      presiona
+      <strong>Compartir</strong>
+      y selecciona
+      <strong>Agregar a pantalla de inicio</strong>.
+    </div>
+
+  </aside>
+
+
+  <!-- ================= LOGIN ================= -->
+
+  <main class="manager-auth-page">
+
+    <section
+      class="manager-auth-card"
+      aria-labelledby="loginTitle"
+    >
+
+      <!-- ================= MARCA ================= -->
+
+      <div class="manager-brand">
+
+        <div class="manager-logo">
+          <img
+            src="manzanas.png"
+            alt="Logotipo de Applebee’s"
+          />
+        </div>
+
+        <p class="eyebrow">
+          Applebee’s Lealtad
+        </p>
+
+        <h1>
+          Acceso de gerentes
+        </h1>
+
+        <p>
+          Validación segura de beneficios y canjes
+        </p>
+
+      </div>
+
+
+      <!-- ================= ENCABEZADO LOGIN ================= -->
 
       <div class="auth-heading">
-        <h2 id="loginTitle">Iniciar sesión</h2>
-        <p class="muted">Ingresa con tu cuenta autorizada.</p>
+
+        <h2 id="loginTitle">
+          Iniciar sesión
+        </h2>
+
+        <p class="muted">
+          Ingresa con tu cuenta autorizada.
+        </p>
+
       </div>
 
+
+      <!-- ================= FORMULARIO ================= -->
+
       <form
-          id="loginGerenteForm"
-          novalidate
-          onsubmit="return false;"
-        >
+        id="loginGerenteForm"
+        novalidate
+        onsubmit="return false;"
+      >
+
+        <!-- CORREO -->
+
         <div class="form-group">
-          <label for="emailGerente">Correo de gerente</label>
+
+          <label for="emailGerente">
+            Correo de gerente
+          </label>
+
           <input
             type="email"
             id="emailGerente"
@@ -77,12 +205,20 @@
             spellcheck="false"
             required
           />
+
         </div>
 
+
+        <!-- CONTRASEÑA -->
+
         <div class="form-group">
-          <label for="passwordGerente">Contraseña</label>
+
+          <label for="passwordGerente">
+            Contraseña
+          </label>
 
           <div class="password-box">
+
             <input
               type="password"
               id="passwordGerente"
@@ -99,55 +235,255 @@
               aria-label="Mostrar contraseña"
               aria-pressed="false"
             >
-              <span class="show-password-text">Ver</span>
+              <span class="show-password-text">
+                Ver
+              </span>
             </button>
+
           </div>
+
         </div>
 
-        <div id="loginMessage" class="form-message" role="alert" aria-live="assertive"></div>
 
-        <button id="btnLoginGerente" class="btn-primary" type="submit">
-          <span class="button-label">Entrar al panel</span>
-          <span class="button-loader" aria-hidden="true"></span>
+        <!-- MENSAJES LOGIN -->
+
+        <div
+          id="loginMessage"
+          class="form-message"
+          role="alert"
+          aria-live="assertive"
+        ></div>
+
+
+        <!-- BOTÓN LOGIN -->
+
+        <button
+          id="btnLoginGerente"
+          class="btn-primary"
+          type="submit"
+        >
+
+          <span class="button-label">
+            Entrar al panel
+          </span>
+
+          <span
+            class="button-loader"
+            aria-hidden="true"
+          ></span>
+
         </button>
+
       </form>
 
+
+      <!-- ================= SEGURIDAD ================= -->
+
       <div class="security-note">
-        <span class="security-dot" aria-hidden="true"></span>
-        <p>Acceso exclusivo para gerentes y administradores autorizados.</p>
+
+        <span
+          class="security-dot"
+          aria-hidden="true"
+        ></span>
+
+        <p>
+          Acceso exclusivo para personal autorizado.
+        </p>
+
       </div>
+
     </section>
+
   </main>
 
-  <noscript>
-    <div class="noscript-message">
-      Activa JavaScript en el navegador para utilizar el panel de gerentes.
+
+  <!-- =====================================================
+       MODAL DE IDENTIFICACIÓN DE OPERADOR
+       ===================================================== -->
+
+  <div
+    id="modalOperador"
+    class="modal-backdrop is-hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="operadorTitle"
+  >
+
+    <div class="confirm-modal">
+
+      <p class="eyebrow">
+        Identificación individual
+      </p>
+
+      <h2 id="operadorTitle">
+        ¿Quién está operando?
+      </h2>
+
+      <p class="muted">
+        Selecciona tu nombre e ingresa tu PIN personal.
+        Cada canje quedará asociado a tu identidad.
+      </p>
+
+
+      <!-- ================= OPERADOR ================= -->
+
+      <div class="form-group">
+
+        <label for="operadorAcceso">
+          Operador
+        </label>
+
+        <select
+          id="operadorAcceso"
+          disabled
+        >
+          <option value="">
+            Cargando operadores...
+          </option>
+        </select>
+
+      </div>
+
+
+      <!-- ================= PIN ================= -->
+
+      <div class="form-group">
+
+        <label for="operadorPin">
+          PIN personal
+        </label>
+
+        <input
+          id="operadorPin"
+          type="password"
+          inputmode="numeric"
+          maxlength="8"
+          autocomplete="off"
+          placeholder="4 a 8 dígitos"
+        />
+
+      </div>
+
+
+      <!-- ================= MENSAJE OPERADOR ================= -->
+
+      <div
+        id="operadorMensaje"
+        class="form-message is-visible"
+        aria-live="polite"
+      >
+        Esperando identificación.
+      </div>
+
+
+      <!-- ================= ACCIONES ================= -->
+
+      <div class="modal-actions">
+
+        <button
+          id="btnAccederOperador"
+          class="btn-primary"
+          type="button"
+          disabled
+        >
+          Continuar al panel
+        </button>
+
+        <button
+          id="btnCancelarOperador"
+          class="btn-secondary"
+          type="button"
+        >
+          Cerrar sesión
+        </button>
+
+      </div>
+
     </div>
+
+  </div>
+
+
+  <!-- ================= NOSCRIPT ================= -->
+
+  <noscript>
+
+    <div class="noscript-message">
+      Activa JavaScript en el navegador para utilizar
+      el panel de gerentes.
+    </div>
+
   </noscript>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 
-<script src="firebase.js?v=gerente_control_3"></script>
-<script src="gerente.js?v=gerente_control_3"></script>
-<script src="install-gerente.js?v=gerente_control_3"></script>
+  <!-- =====================================================
+       FIREBASE
+       ===================================================== -->
 
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", function () {
-      navigator.serviceWorker
-        .register("./service-worker-gerente.js?v=gerente_control_3")
-        .catch(function (error) {
-          console.error(
-            "No se pudo registrar el Service Worker de gerentes:",
-            error
-          );
-        });
-    });
-  }
-</script>
+  <script
+    src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"
+  ></script>
+
+  <script
+    src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"
+  ></script>
+
+  <script
+    src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"
+  ></script>
+
+  <script
+    src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"
+  ></script>
+
+  <script
+    src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"
+  ></script>
+
+
+  <!-- ================= ARCHIVOS DE LA APP ================= -->
+
+  <script src="firebase.js?v=operadores_v1"></script>
+
+  <script src="gerente.js?v=operadores_v1"></script>
+
+  <script src="install-gerente.js?v=gerente_control_3"></script>
+
+
+  <!-- =====================================================
+       SERVICE WORKER
+       ===================================================== -->
+
+  <script>
+
+    if ("serviceWorker" in navigator) {
+
+      window.addEventListener(
+        "load",
+        function () {
+
+          navigator.serviceWorker
+            .register(
+              "./service-worker-gerente.js?v=operadores_v1"
+            )
+            .catch(
+              function (error) {
+
+                console.error(
+                  "No se pudo registrar el Service Worker de gerentes:",
+                  error
+                );
+
+              }
+            );
+
+        }
+      );
+
+    }
+
+  </script>
+
 </body>
+
 </html>
