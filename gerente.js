@@ -7,6 +7,9 @@ let qrScannerGerente = null;
 let canjeActualId = null;
 let canjeActualData = null;
 let gerenteActual = null;
+let operadorActual = null;
+let operatorToken = "";
+let operatorSessionExpiresAt = 0;
 let canjesCargados = [];
 let validandoCanje = false;
 let procesandoQR = false;
@@ -17,6 +20,8 @@ let uiInicializada = false;
 
 const SESSION_IDLE_MS = 20 * 60 * 1000;
 const MAX_HISTORY_ITEMS = 100;
+const OPERATOR_STORAGE_KEY = "applebees_operator_session_v1";
+const OPERATOR_BRANCH_DEFAULT = "applebees_tecnologico";
 
 const SUCURSALES = Object.freeze({
   applebees_torres: "Applebee’s Torres",
@@ -218,6 +223,10 @@ function inicializarInterfazGerente() {
   const redemptionBranch = obtenerElemento("sucursalCanje");
   const modalConfirmButton = obtenerElemento("btnConfirmarModal");
   const modalCancelButton = obtenerElemento("btnCancelarModal");
+  const operatorSelect = obtenerElemento("operadorAcceso");
+  const operatorPin = obtenerElemento("operadorPin");
+  const operatorLoginButton = obtenerElemento("btnAccederOperador");
+  const operatorCancelButton = obtenerElemento("btnCancelarOperador");
 
   loginForm?.addEventListener("submit", loginGerente);
   togglePassword?.addEventListener("click", togglePasswordGerente);
@@ -232,6 +241,10 @@ function inicializarInterfazGerente() {
   redemptionBranch?.addEventListener("change", actualizarBotonValidar);
   modalConfirmButton?.addEventListener("click", () => resolverModalCanje(true));
   modalCancelButton?.addEventListener("click", () => resolverModalCanje(false));
+  operatorSelect?.addEventListener("change", actualizarBotonAccesoOperador);
+  operatorPin?.addEventListener("input", actualizarBotonAccesoOperador);
+  operatorLoginButton?.addEventListener("click", autenticarOperadorSeleccionado);
+  operatorCancelButton?.addEventListener("click", cerrarSesionGerente);
 
   document.addEventListener("keydown", event => {
     if (event.key === "Escape" && !obtenerElemento("modalConfirmarCanje")?.classList.contains("is-hidden")) {
@@ -250,6 +263,19 @@ if (document.readyState === "loading") {
 } else {
   inicializarInterfazGerente();
 }
+
+// ================= OPERADORES =================
+function esCuentaOperadores(p=gerenteActual){return p?.raw?.modoOperadores===true;}
+function responsableActual(){return operadorActual?.nombre||gerenteActual?.nombre||"---";}
+async function obtenerApiOperadoresBase(){const s=await rtdb.ref("sistema/cloudflare_upload").once("value"),d=s.val();let u=typeof d==="string"?d:(d?.url||d?.baseUrl||d?.base_url||d?.cloudflareUrl||"");u=normalizarTexto(u).replace(/\/+$/,"");if(!u)throw new Error("OPERATOR_API_NOT_AVAILABLE");return u;}
+async function apiOperadores(path,opt={}){const u=auth.currentUser;if(!u)throw new Error("NO_AUTH");const ft=await u.getIdToken(true),base=await obtenerApiOperadoresBase(),headers={...(opt.headers||{}),Authorization:`Bearer ${ft}`};if(operatorToken)headers["X-Operator-Token"]=operatorToken;const r=await fetch(`${base}${path}`,{...opt,headers});let b={};try{b=await r.json();}catch(_){}if(!r.ok){const e=new Error(b?.codigo||b?.mensaje||`HTTP_${r.status}`);e.api=b;throw e;}return b;}
+function guardarSesionOperador(d){operadorActual=d?.operador||null;operatorToken=normalizarTexto(d?.operatorToken||operatorToken);operatorSessionExpiresAt=Number(d?.expiresAt||0);if(operadorActual&&operatorToken)sessionStorage.setItem(OPERATOR_STORAGE_KEY,JSON.stringify({operador:operadorActual,operatorToken,expiresAt:operatorSessionExpiresAt,sessionId:d?.sessionId||""}));}
+function limpiarSesionOperador(){operadorActual=null;operatorToken="";operatorSessionExpiresAt=0;sessionStorage.removeItem(OPERATOR_STORAGE_KEY);}
+function restaurarSesionOperadorLocal(){try{const d=JSON.parse(sessionStorage.getItem(OPERATOR_STORAGE_KEY)||"null");if(!d?.operador||!d?.operatorToken||Number(d.expiresAt||0)<=Date.now()){limpiarSesionOperador();return false;}operadorActual=d.operador;operatorToken=d.operatorToken;operatorSessionExpiresAt=Number(d.expiresAt||0);return true;}catch(_){limpiarSesionOperador();return false;}}
+async function validarSesionOperadorActual(){if(!esCuentaOperadores())return true;if(!operadorActual||!operatorToken)return false;try{const d=await apiOperadores("/api/operators/session",{method:"GET"});operadorActual=d.operador||operadorActual;operatorSessionExpiresAt=Number(d.expiresAt||operatorSessionExpiresAt);const old=JSON.parse(sessionStorage.getItem(OPERATOR_STORAGE_KEY)||"{}");sessionStorage.setItem(OPERATOR_STORAGE_KEY,JSON.stringify({...old,operador:operadorActual,operatorToken,expiresAt:operatorSessionExpiresAt}));return true;}catch(e){console.warn("Sesion operador invalida:",e);limpiarSesionOperador();return false;}}
+async function prepararAccesoOperador(){const m=obtenerElemento("modalOperador"),s=obtenerElemento("operadorAcceso"),p=obtenerElemento("operadorPin"),st=obtenerElemento("operadorMensaje");if(!m||!s)return false;m.classList.remove("is-hidden");s.disabled=true;s.replaceChildren(new Option("Cargando operadores...",""));if(p)p.value="";if(st)st.textContent="Consultando operadores autorizados...";const branch=sucursalesPermitidas()[0]||OPERATOR_BRANCH_DEFAULT;try{const d=await apiOperadores(`/api/operators?sucursal=${encodeURIComponent(branch)}`,{method:"GET"});s.replaceChildren(new Option("Selecciona tu nombre",""));(d.operadores||[]).forEach(o=>s.add(new Option(`${o.nombre} (${o.role})`,o.id)));s.disabled=false;if(st)st.textContent="Selecciona tu nombre e ingresa tu PIN personal.";actualizarBotonAccesoOperador();return true;}catch(e){console.error(e);s.replaceChildren(new Option("No fue posible cargar operadores",""));if(st)st.textContent="No fue posible consultar operadores.";return false;}}
+function actualizarBotonAccesoOperador(){const b=obtenerElemento("btnAccederOperador"),s=obtenerElemento("operadorAcceso"),p=normalizarTexto(obtenerElemento("operadorPin")?.value);if(b)b.disabled=!s?.value||!/^\d{4,8}$/.test(p);}
+async function autenticarOperadorSeleccionado(){const s=obtenerElemento("operadorAcceso"),pe=obtenerElemento("operadorPin"),b=obtenerElemento("btnAccederOperador"),st=obtenerElemento("operadorMensaje"),oid=normalizarTexto(s?.value).toLowerCase(),pin=normalizarTexto(pe?.value),branch=sucursalesPermitidas()[0]||OPERATOR_BRANCH_DEFAULT;if(!oid||!/^\d{4,8}$/.test(pin))return;try{if(b)b.disabled=true;if(st)st.textContent="Verificando identidad...";const d=await apiOperadores("/api/operators/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sucursal:branch,operadorId:oid,pin})});guardarSesionOperador(d);if(pe)pe.value="";const m=obtenerElemento("modalOperador");m?.classList.add("is-hidden");window.location.replace("panel-gerente.html");}catch(e){console.error(e);if(pe)pe.value="";if(st)st.textContent=e?.api?.mensaje||"Operador o PIN incorrectos.";actualizarBotonAccesoOperador();}}
 
 // ================= LOGIN =================
 
@@ -282,6 +308,8 @@ async function loginGerente(event) {
       return;
     }
 
+    gerenteActual = crearPerfilGerente(credential.user, result.data);
+    if (esCuentaOperadores(gerenteActual)) { mostrarMensajeLogin("Cuenta autorizada. Identifica al operador para continuar.", "success"); await prepararAccesoOperador(); return; }
     mostrarMensajeLogin("Acceso autorizado. Abriendo el panel...", "success");
     window.location.replace("panel-gerente.html");
   } catch (error) {
@@ -349,11 +377,12 @@ auth.onAuthStateChanged(async user => {
   }
 
   gerenteActual = crearPerfilGerente(user, result.data);
-
-  if (isLoginPage) {
-    window.location.replace("panel-gerente.html");
-    return;
-  }
+  if (esCuentaOperadores(gerenteActual)) {
+    const restored = restaurarSesionOperadorLocal();
+    const validOperatorSession = restored ? await validarSesionOperadorActual() : false;
+    if (!validOperatorSession) { if (!isLoginPage) { window.location.replace("login-gerente.html?operador=requerido"); return; } await prepararAccesoOperador(); return; }
+  } else { limpiarSesionOperador(); }
+  if (isLoginPage) { window.location.replace("panel-gerente.html"); return; }
 
   renderizarPerfilGerente();
   cargarSelectoresSucursales();
@@ -401,11 +430,12 @@ function crearPerfilGerente(user, data) {
 function renderizarPerfilGerente() {
   if (!gerenteActual) return;
 
-  setText("gerenteNombre", gerenteActual.nombre);
-  setText("gerenteCorreo", gerenteActual.email || "Sin correo registrado");
-  setText("gerenteRol", esAdmin() ? "Administrador" : "Gerente");
-  setText("gerenteIniciales", obtenerIniciales(gerenteActual.nombre));
-  setText("responsableCanje", gerenteActual.nombre);
+  const nombreVisible = responsableActual(); const esOperador = Boolean(operadorActual);
+  setText("gerenteNombre", nombreVisible);
+  setText("gerenteCorreo", esOperador ? `${nombreSucursal(operadorActual.sucursal)} · Cuenta: ${gerenteActual.email}` : (gerenteActual.email || "Sin correo registrado"));
+  setText("gerenteRol", esOperador ? (normalizarTexto(operadorActual.role) || "Operador") : (esAdmin() ? "Administrador" : "Gerente"));
+  setText("gerenteIniciales", obtenerIniciales(nombreVisible)); setText("responsableCanje", nombreVisible);
+  setText("panelTitle", esOperador ? "Panel de Validación" : "Panel de Gerente"); setText("panelSubtitle", esOperador ? `Operador activo: ${nombreVisible}` : "Validación segura de canjes por código QR");
 
   const container = obtenerElemento("gerenteSucursales");
   if (!container) return;
@@ -457,6 +487,7 @@ async function cerrarSesionGerente() {
   try {
     await detenerScannerGerente();
     detenerControlInactividad();
+    limpiarSesionOperador();
     await auth.signOut();
     window.location.replace("login-gerente.html");
   } catch (error) {
@@ -489,6 +520,7 @@ function reiniciarTemporizadorInactividad() {
   window.clearTimeout(idleTimer);
   idleTimer = window.setTimeout(async () => {
     await detenerScannerGerente();
+    limpiarSesionOperador();
     await auth.signOut();
     window.location.replace("login-gerente.html?sesion=inactiva");
   }, SESSION_IDLE_MS);
@@ -724,7 +756,7 @@ function mostrarCanje(data) {
   setText("beneficioCanje", data.beneficio || "---");
   setText("montoCanje", money(data.monto || 0));
   setText("folioCanje", data.redemptionId || canjeActualId || "---");
-  setText("responsableCanje", gerenteActual?.nombre || "---");
+  setText("responsableCanje", responsableActual());
 
   const statusElement = obtenerElemento("estadoCanje");
   if (statusElement) {
@@ -789,7 +821,7 @@ async function solicitarConfirmacionCanje() {
 
   setText(
     "modalCanjeResumen",
-    `${canjeActualData.beneficio || "Beneficio"} por ${money(canjeActualData.monto || 0)} en ${nombreSucursal(branch)}. Responsable: ${gerenteActual?.nombre || "---"}.`
+    `${canjeActualData.beneficio || "Beneficio"} por ${money(canjeActualData.monto || 0)} en ${nombreSucursal(branch)}. Responsable: ${responsableActual()}.`
   );
 
   const confirmed = await abrirModalCanje();
@@ -849,6 +881,7 @@ async function validarCanjeGerente() {
     }
 
     gerenteActual = freshProfile;
+    if (esCuentaOperadores(gerenteActual)) { const ok = await validarSesionOperadorActual(); if (!ok) { mostrarEstadoApp("La sesión del operador expiró. Identifícate nuevamente.", "error", 6500); window.setTimeout(() => window.location.replace("login-gerente.html?operador=requerido"), 1200); return; } if (operadorActual?.sucursal !== branch) throw new Error("OPERATOR_BRANCH_MISMATCH"); }
     renderizarPerfilGerente();
 
     const redemptionRef = rtdb.ref(`redemptions/${originalId}`);
@@ -952,6 +985,9 @@ const transactionResult = await redemptionRef.transaction(current => {
     gerenteNombre: gerenteActual.nombre,
     gerenteEmail: gerenteActual.email,
     gerenteRol: gerenteActual.role,
+    operadorId: operadorActual?.id || null,
+    operadorNombre: operadorActual?.nombre || null,
+    operadorRol: operadorActual?.role || null,
 
     redeemedAt: firebase.database.ServerValue.TIMESTAMP,
 
@@ -963,6 +999,9 @@ const transactionResult = await redemptionRef.transaction(current => {
       gerenteUid: gerenteActual.uid,
       gerenteNombre: gerenteActual.nombre,
       gerenteEmail: gerenteActual.email,
+      operadorId: operadorActual?.id || null,
+      operadorNombre: operadorActual?.nombre || null,
+      operadorRol: operadorActual?.role || null,
 
       sucursalId: branch,
       sucursalNombre: nombreSucursal(branch),
@@ -1031,6 +1070,9 @@ try {
     gerenteNombre: gerenteActual.nombre,
     gerenteEmail: gerenteActual.email,
     gerenteRol: gerenteActual.role,
+    operadorId: operadorActual?.id || null,
+    operadorNombre: operadorActual?.nombre || null,
+    operadorRol: operadorActual?.role || null,
     sucursalCanje: branch,
     sucursalCanjeNombre: nombreSucursal(branch),
     beneficio: saved.beneficio || "",
@@ -1187,6 +1229,8 @@ function aplicarFiltrosHistorial() {
       item.clienteNombre,
       item.clienteEmail,
       item.beneficio,
+      item.operadorNombre,
+      item.operadorId,
       item.gerenteNombre,
       item.gerenteEmail,
       item.redemptionId,
@@ -1225,7 +1269,7 @@ function renderizarHistorial(items) {
       ["Beneficio", item.beneficio || "---"],
       ["Monto", money(item.monto || 0)],
       ["Sucursal", item.sucursalCanjeNombre || nombreSucursal(item.sucursalCanje)],
-      ["Gerente", item.gerenteNombre || item.gerenteEmail || "---"],
+      ["Responsable", item.operadorNombre || item.gerenteNombre || item.gerenteEmail || "---"],
       ["Folio", item.redemptionId || item._key || "---"]
     ];
 
